@@ -1,11 +1,29 @@
+async function storageSet(key, value) {
+  return browser.storage.local.set({ [key]: value })
+}
+
+async function storageGet(key) {
+  const { [key]: value } = await browser.storage.local.get(key)
+  return value
+}
+
+async function storageReset(key) {
+  return browser.storage.local.remove(key)
+}
+
+(async () => {
+  const tabs = await browser.tabs.query({})
+  window.tabs = tabs
+  console.log(window.tabs)
+})()
+
+
 let windowId = ""
 
 const togglePopup = async () => {
   // const url = browser.runtime.getURL('src/browser-action/popup.html')
   // const url = browser.runtime.getURL('dist/index.html')
-  // const url = browser.runtime.getURL('http://localhost:3000/index.html')
-  // const url = browser.runtime.getURL('public/background.html')
-  const url = browser.runtime.getURL('dist/public/background.html')
+  const url = browser.runtime.getURL('http://localhost:3000/index.html')
 
   // await browser.tabs.update(25, { active: true })
 

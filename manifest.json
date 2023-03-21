@@ -12,13 +12,12 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["src/content-scripts/content-script.js"]
+      "js": ["src/index.jsx"]
     }
   ],
 
   "background": {
     "scripts": ["src/scripts/background.js"]
-    "type": "module",
   },
 
 

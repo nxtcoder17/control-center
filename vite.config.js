@@ -10,13 +10,14 @@ export default defineConfig({
     //   manifest: manifest,
     // }),
   ],
+  base: '/dist',
   server: {
     port: 3000,
   },
   build: {
     target: 'esnext',
-    // rollupOptions: {
-    //   input: './index.html'
-    // },
+    rollupOptions: {
+      input: 'public/background.html'
+    },
   },
 });
