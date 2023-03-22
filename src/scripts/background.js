@@ -20,13 +20,13 @@ const togglePopup = async () => {
   if (windowId) {
     try {
       await browser.windows.remove(windowId)
+      return
     } catch (err) {
       console.error(`can not remove control center window, with windowId (${JSON.stringify(windowId)})`)
     } finally {
       windowId = ""
       // await storageReset("windowId")
     }
-    return
   }
 
   try {
