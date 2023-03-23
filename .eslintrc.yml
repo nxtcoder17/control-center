@@ -1,0 +1,14 @@
+extends:
+  - plugin:solid/recommended
+
+parserOptions:
+  ecmaVersion: 2022
+
+plugins:
+  - prettier
+  - solid
+
+env:
+  browser: true
+  es6: true
+  webextensions: true
