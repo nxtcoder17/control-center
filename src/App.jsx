@@ -1,8 +1,9 @@
 import {
-  createSignal, createResource, For, Show
+  createSignal, createResource, For, Show, createEffect
 } from 'solid-js';
 import Fuse from 'fuse.js';
 import { Tab } from './components/tab';
+import { dummyTabs } from './dummy-tabs'
 
 function App() {
   // const [tabs, setTabs] = createSignal(window.tabs)
@@ -10,7 +11,7 @@ function App() {
   const [data] = createResource(async () => {
     const tabs = await browser.tabs.query({});
     return tabs;
-    // return dummyTabs
+    // return dummyTabs;
   });
 
   const [matchedTabs, setMatchedTabs] = createSignal([]);
@@ -19,22 +20,42 @@ function App() {
 
   const [activeMatch, setActiveMatch] = createSignal(0);
 
+  async function pinThisTab(tabId) {
+    const tab = await browser.tabs.get(tabId)
+    await browser.tabs.update(tabId, {
+      pinned: !tab.pinned,
+    })
+  }
+
   function onKeyDown(event) {
+    console.log("event:", event.ctrlKey, event.key)
     // eslint-disable-next-line default-case
-    switch (event.key) {
-      case 'ArrowDown': {
-        setActiveMatch((am) => am + 1);
-        return;
-      }
-      case 'ArrowUp': {
-        setActiveMatch((am) => am - 1);
-      }
+
+    if (event.key === "ArrowDown") {
+      setActiveMatch((am) => am + 1);
+      return
+    }
+
+    if (event.key === "ArrowUp") {
+      setActiveMatch((am) => am - 1);
+      return
+    }
+
+    if (event.ctrlKey && event.key === "p") {
+      event.preventDefault();
+      console.log("this tab should be pinned")
+      const m = matchedTabs()[activeMatch()].item;
+      (async () => {
+        await pinThisTab(m.id)
+      })()
+      return
     }
   }
 
   return (
-    <div class="container mx-auto p-6">
-      <div class="flex flex-col gap-4" onKeyDown={onKeyDown}>
+    <div class="container mx-auto p-6" onKeyDown={onKeyDown}>
+      <div>current active match: {activeMatch()}</div>
+      <div class="flex flex-col gap-4">
         <form onSubmit={async (e) => {
           e.preventDefault();
           const m = matchedTabs()[activeMatch()].item;
@@ -43,8 +64,8 @@ function App() {
         }}
         >
           <input
-            ref={(el) => setTimeout(() => el.focus())}
             type="text"
+            autoFocus
             placeholder="Search Your Tabs"
             value={query()}
             class="h-8 bg-slate-100 w-full px-4 py-6 text-lg leading-10 tracking-wider focus:outline-none"
@@ -59,13 +80,6 @@ function App() {
               setMatchedTabs(results);
               console.log(results);
             }}
-          // onChange={(e => {
-          //   setQuery(e.target.value)
-          //   const f = new Fuse(data() || [], { keys: ["title"] })
-          //   const results = f.search(e.target.value)
-          //   setMatchedTabs(results)
-          //   console.log(results)
-          // })}
           />
         </form>
 

@@ -10,6 +10,7 @@ specifiers:
   eslint-plugin-prettier: ^4.2.1
   eslint-plugin-solid: ^0.11.0
   fuse.js: ^6.6.2
+  icon-park-solid: ^1.4.3
   postcss: ^8.4.21
   prop-types: ^15.8.1
   solid-js: ^1.6.10
@@ -23,6 +24,7 @@ dependencies:
   '@samrum/vite-plugin-web-extension': 3.1.1_vite@4.2.1
   classnames: 2.3.2
   fuse.js: 6.6.2
+  icon-park-solid: 1.4.3_solid-js@1.6.15
   prop-types: 15.8.1
   solid-js: 1.6.15
   web-ext: 7.6.0
@@ -2589,6 +2591,15 @@ packages:
   /human-signals/1.1.1:
     resolution: {integrity: sha512-SEQu7vl8KjNL2eoGBLF3+wAjpsNfA9XMlXAYj/3EdaNfAlxKthD1xjEQfGOUhllCGGJVNY34bRr6lPINhNjyZw==}
     engines: {node: '>=8.12.0'}
+    dev: false
+
+  /icon-park-solid/1.4.3_solid-js@1.6.15:
+    resolution: {integrity: sha512-GTlqmyAQsmZYX+np5Sw2fCsBd4BhUz5Ysiq8tBnBgIY4QmGkwbwAikKkGEUkSc3WQIrUBSAj1sIRYdIrrcGJuw==}
+    engines: {node: '>= 8.0.0', npm: '>= 5.0.0'}
+    peerDependencies:
+      solid-js: '>=1.6.11'
+    dependencies:
+      solid-js: 1.6.15
     dev: false
 
   /ieee754/1.2.1:
