@@ -1,4 +1,5 @@
 extends:
+  - eslint:recommended
   - plugin:solid/recommended
 
 parserOptions:
@@ -12,3 +13,4 @@ env:
   browser: true
   es6: true
   webextensions: true
+

@@ -10,7 +10,7 @@
     "dev": "vite dev",
     "build": "vite build",
     "serve": "vite preview",
-    "web-ext2": "web-ext run --devtools --start-url \"about:debugging#/runtime/this-firefox\" ",
+    "web-ext2": "web-ext run --start-url \"about:debugging#/runtime/this-firefox\" ",
     "web-ext": "web-ext run --start-url \"about:debugging#/runtime/this-firefox\" ",
     "serve:firefox": "web-ext run --start-url \"about:debugging#/runtime/this-firefox\"  --source-dir ./dist/",
     "serve:chrome": "web-ext run -t chromium --start-url \"https://google.com\" --source-dir ./dist/"
@@ -23,21 +23,23 @@
     "classnames": "^2.3.2",
     "fuse.js": "^6.6.2",
     "icon-park-solid": "^1.4.3",
+    "immer": "^9.0.21",
     "prop-types": "^15.8.1",
-    "solid-js": "^1.6.10",
+    "solid-icons": "^1.0.4",
+    "solid-js": "^1.6.15",
     "web-ext": "^7.6.0",
     "webextension-polyfill": "^0.10.0"
   },
   "devDependencies": {
-    "@babel/eslint-parser": "^7.18.2",
+    "@babel/eslint-parser": "^7.21.3",
     "autoprefixer": "^10.4.14",
-    "eslint": "^8.19.0",
-    "eslint-config-prettier": "^8.5.0",
+    "eslint": "^8.36.0",
+    "eslint-config-prettier": "^8.8.0",
     "eslint-plugin-prettier": "^4.2.1",
     "eslint-plugin-solid": "^0.11.0",
     "postcss": "^8.4.21",
     "tailwindcss": "^3.2.7",
-    "vite": "^4.1.1",
-    "vite-plugin-solid": "^2.5.0"
+    "vite": "^4.2.1",
+    "vite-plugin-solid": "^2.6.1"
   }
 }

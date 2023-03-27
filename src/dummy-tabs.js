@@ -141,7 +141,7 @@ export const dummyTabs = [
     "lastAccessed": 1679494888665,
     "audible": false,
     "mutedInfo": {
-      "muted": false
+      "muted": true
     },
     "isArticle": false,
     "isInReaderMode": false,

@@ -8,3 +8,6 @@ What it does ?
 
 - [x] Query tabs based on FZF syntax, and switches among them
 - [x] Arrow Up/Down to move to different highlighted tab
+
+### solidjs must read
+https://javascript.plainenglish.io/designing-solidjs-immutability-f1e46fe9f321

@@ -1,21 +1,26 @@
 import cn from 'classnames'
 import PropTypes from "prop-types";
-import Pin from 'icon-park-solid/es/icons/Pin.mjs';
+import { TbVolumeOff, TbPinned } from 'solid-icons/tb'
 
-export const Tab = (tabData) => {
+export const Tab = (props) => {
   return <div
-    class={cn("tracking-wide text-gray-700  px-2 py-2 rounded-md hover:bg-slate-200 cursor-pointer transition-all", {
-      "bg-slate-200": tabData.isSelected,
-      "bg-slate-50 ": !tabData.isSelected,
+    class={cn("tracking-wide text-gray-700  px-2 py-0.5 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer transition-all flex flex-row justify-between", {
+      "bg-slate-200 dark:bg-slate-900 dark:text-slate-300": props.isSelected,
+      "bg-slate-50 dark:bg-slate-700 dark:text-slate-400": !props.isSelected,
     })}
-    onClick={tabData.onClick}>
-    <div class="flex flex-row items-center gap-4">
-      <div class="flex items-center justify-center h-10 w-10">
-        <img src={tabData.favIconUrl} />
+    onClick={props.onClick}>
+    <div class="flex flex-row items-center gap-2">
+      <div class="h-5 w-5">
+        <img src={props.tabInfo.favIconUrl} />
       </div>
-      <span class="text-xl">{tabData.title}</span>
-      <span class="text-lg">{tabData.pinned ? <Pin /> : ""}</span>
+      <span class="text-base">{props.tabInfo.title}</span>
     </div>
+
+    <div class="flex flex-row gap-2 items-center">
+      <span class="text-sm">{props.tabInfo.pinned ? <TbPinned size="20" /> : ""}</span>
+      <span class="text-sm">{props.tabInfo.mutedInfo?.muted ? < TbVolumeOff size="20" /> : ""}</span>
+    </div>
+
   </div>
 }
 

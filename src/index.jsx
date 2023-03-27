@@ -11,4 +11,5 @@ if (import.meta.env.DEV && !(root instanceof HTMLElement)) {
   );
 }
 
+console.log("here, i am")
 render(() => <App />, root);
