@@ -1,5 +1,5 @@
 import { produce } from "immer";
-import { Show, For, createResource, createSignal, createComputed, onCleanup } from "solid-js";
+import { Show, For, createResource, createSignal, createComputed, onCleanup, createEffect, untrack } from "solid-js";
 
 import { Tab } from './components/tab';
 import { browserApi } from "./webext-apis/browser-api";
@@ -22,7 +22,16 @@ function App() {
     })
   })
 
-  const [matchedTabs, setMatchedTabs] = createSignal(tabs().map(t => t.id));
+  const [matchedTabs, setMatchedTabs] = createSignal([]);
+  createComputed(() => {
+    setMatchedTabs(mt => {
+      if (mt.length == 0) {
+        return tabs().map(t => t.id)
+      }
+      return [...mt]
+    })
+  })
+
   const [query, setQuery] = createSignal('');
   const [activeMatch, setActiveMatch] = createSignal(0);
 
@@ -36,10 +45,10 @@ function App() {
     // console.log("event:", event.ctrlKey, event.key)
     // eslint-disable-next-line default-case
 
-    console.log("tabId: ", matchedTabs()[activeMatch()])
-    console.log("active tab: ", tabsMap()[matchedTabs()[activeMatch()]])
-    console.log("active url: ", tabsMap()[matchedTabs()[activeMatch()]].url)
-
+    // console.log("tabId: ", matchedTabs()[activeMatch()])
+    // console.log("active tab: ", tabsMap()[matchedTabs()[activeMatch()]])
+    // console.log("active url: ", tabsMap()[matchedTabs()[activeMatch()]].url)
+    //
     const activeTabId = matchedTabs()[activeMatch()]
 
     if (event.key == "ArrowRight" && tabsMap()[activeTabId]?.url?.includes("spotify.com")) {
@@ -136,37 +145,37 @@ function App() {
           {/*   <div>tab0 pinned: {`${currentTab(tabs()[0].id).pinned}`}</div> */}
           {/* </Show> */}
 
-          <Show when={query().length !== 0}>
-            <For each={matchedTabs()}>
-              {(tabId, idx) => (
-                <Tab
-                  tabInfo={tabsMap()[tabId]}
-                  isSelected={activeMatch() === idx()}
-                  onClick={() => {
-                    (async () => {
-                      await browser.tabs.update(tabId, { active: true });
-                    })();
-                  }}
-                />
-              )}
-            </For>
-          </Show>
+          {/* <Show when={query().length !== 0}> */}
+          <For each={matchedTabs()}>
+            {(tabId, idx) => (
+              <Tab
+                tabInfo={tabsMap()[tabId]}
+                isSelected={activeMatch() === idx()}
+                onClick={() => {
+                  (async () => {
+                    await browser.tabs.update(tabId, { active: true });
+                  })();
+                }}
+              />
+            )}
+          </For>
+          {/* </Show> */}
 
-          <Show when={query().length === 0}>
-            <For each={tabs()}>
-              {(tab, idx) => (
-                <Tab
-                  tabInfo={tab}
-                  isSelected={activeMatch() === idx()}
-                  onClick={() => {
-                    (async () => {
-                      await browser.tabs.update(tab.id, { active: true });
-                    })();
-                  }}
-                />
-              )}
-            </For>
-          </Show>
+          {/* <Show when={query().length === 0}> */}
+          {/*   <For each={tabs()}> */}
+          {/*     {(tab, idx) => ( */}
+          {/*       <Tab */}
+          {/*         tabInfo={tab} */}
+          {/*         isSelected={activeMatch() === idx()} */}
+          {/*         onClick={() => { */}
+          {/*           (async () => { */}
+          {/*             await browser.tabs.update(tab.id, { active: true }); */}
+          {/*           })(); */}
+          {/*         }} */}
+          {/*       /> */}
+          {/*     )} */}
+          {/*   </For> */}
+          {/* </Show> */}
         </div>
       </div>
     </div>
