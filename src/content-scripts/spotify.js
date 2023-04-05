@@ -11,7 +11,7 @@ const pauseSong = () => {
 }
 
 // console.log("hello from spotify content script")
-// document.body.style = "background: red";
+// document.body.style = "background: blue";
 
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
   console.log("sender:", sender)

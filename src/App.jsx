@@ -1,5 +1,5 @@
 import { produce } from "immer";
-import { Show, For, createResource, createSignal, createComputed, onCleanup, createEffect, untrack } from "solid-js";
+import { For, createResource, createSignal, createComputed, onCleanup, onMount, createEffect } from "solid-js";
 
 import { Tab } from './components/tab';
 import { browserApi } from "./webext-apis/browser-api";
@@ -12,6 +12,11 @@ function App() {
   }, {
     initialValue: [],
   });
+  let timer = setInterval(() => {
+    refetch()
+  }, 500)
+  onCleanup(() => clearInterval(timer))
+
 
   const [tabsMap, setTabsMap] = createSignal({})
   createComputed(() => {
@@ -34,11 +39,6 @@ function App() {
 
   const [query, setQuery] = createSignal('');
   const [activeMatch, setActiveMatch] = createSignal(0);
-
-  let timer = setInterval(() => {
-    refetch()
-  }, 500)
-  onCleanup(() => clearInterval(timer))
 
 
   function onKeyDown(event) {
@@ -95,6 +95,7 @@ function App() {
       return
     }
 
+
     if (event.ctrlKey && event.key === "m") {
       event.preventDefault();
       console.log("this tab should be toggled muted/unmute")
@@ -111,9 +112,17 @@ function App() {
     }
   }
 
+  // const [activeMatchRef, setActiveMatchRef] = createSignal(null);
+  // createEffect(() => {
+  //   if (activeMatchRef()) {
+  //     console.log("activeMatchRef:", activeMatchRef())
+  //     activeMatchRef().scrollIntoView()
+  //   }
+  // })
+
   return (
-    <div class="h-screen w-screen overflow-none" onKeyDown={onKeyDown}>
-      <div class="container mx-auto p-6 h-full dark:bg-slate-800 overflow-auto">
+    <div class="h-screen w-screen overflow-none py-4 px-4 dark:bg-slate-800" onKeyDown={onKeyDown}>
+      <div class="h-full w-full overflow-auto">
         <div class="flex flex-col gap-2">
           <form onSubmit={async (e) => {
             e.preventDefault();
@@ -127,7 +136,7 @@ function App() {
               autoFocus
               placeholder="Search Your Tabs"
               value={query()}
-              class="bg-slate-100 dark:bg-slate-900 dark:text-blue-50 w-full px-4 py-2 text-lg leading-4 tracking-wider focus:outline-none"
+              class="bg-slate-100 dark:bg-slate-900 dark:text-blue-50 w-full px-4 py-2 text-lg leading-4 tracking-wider focus:outline-none sticky"
               onInput={(e) => {
                 setQuery(e.target.value);
                 const f = new Fuse(tabs() || [], {
@@ -141,11 +150,6 @@ function App() {
             />
           </form>
 
-          {/* <Show when={tabs().length > 0}> */}
-          {/*   <div>tab0 pinned: {`${currentTab(tabs()[0].id).pinned}`}</div> */}
-          {/* </Show> */}
-
-          {/* <Show when={query().length !== 0}> */}
           <For each={matchedTabs()}>
             {(tabId, idx) => (
               <Tab
@@ -159,23 +163,6 @@ function App() {
               />
             )}
           </For>
-          {/* </Show> */}
-
-          {/* <Show when={query().length === 0}> */}
-          {/*   <For each={tabs()}> */}
-          {/*     {(tab, idx) => ( */}
-          {/*       <Tab */}
-          {/*         tabInfo={tab} */}
-          {/*         isSelected={activeMatch() === idx()} */}
-          {/*         onClick={() => { */}
-          {/*           (async () => { */}
-          {/*             await browser.tabs.update(tab.id, { active: true }); */}
-          {/*           })(); */}
-          {/*         }} */}
-          {/*       /> */}
-          {/*     )} */}
-          {/*   </For> */}
-          {/* </Show> */}
         </div>
       </div>
     </div>
