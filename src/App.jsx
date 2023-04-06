@@ -1,45 +1,95 @@
 import { produce } from "immer";
-import { For, createResource, createSignal, createComputed, onCleanup, batch } from "solid-js";
+import { For, createResource, createSignal, createComputed, onCleanup, batch, createEffect, createMemo } from "solid-js";
 
 import { Tab } from './components/tab';
 import { browserApi } from "./webext-apis/browser-api";
 import Fuse from 'fuse.js';
 import { spotifyWebControls } from "./webext-apis/spotify-controls";
 
+function fuzzyFindTabs(tabs, query) {
+  // console.log("tabs: ", tabs, "query: ", query)
+  if (query === "") {
+    return tabs.map(item => item.id)
+  }
+  const f = new Fuse(tabs || [], {
+    keys: ['title', 'url'],
+    includeScore: true,
+    useExtendedSearch: true,
+  });
+  const results = f.search(query);
+  console.log("results: ", results)
+  return results.map(result => result.item.id)
+}
+
 function App() {
-  const [tabs, { refetch }] = createResource(async () => {
+  const [readTabs, { refetch }] = createResource(async () => {
     return browserApi.listAllTabs();
   }, {
     initialValue: [],
   });
-  let timer = setInterval(() => {
-    refetch()
-  }, 500)
-  onCleanup(() => clearInterval(timer))
+
+  // let timer = setInterval(() => {
+  //   refetch()
+  // }, 500)
+  // onCleanup(() => clearInterval(timer))
+
+  // const readTabs = createMemo(() => {
+  //   const t = tabs()
+  //   return t;
+  // }, null, {
+  //   equals: (prev, next) => {
+  //     if (prev.length != next.length) {
+  //       return false
+  //     }
+  //     for (let i = 0; i < next.length; ++i) {
+  //       // if (JSON.stringify(next[i]) !== JSON.stringify(prev[i])) {
+  //       console.log("next[i].id == prev[i].id", next[i].id, prev[i].id, next[i].id == prev[i].id)
+  //       if (next[i].id != prev[i].id) {
+  //         return false
+  //       }
+  //     }
+  //     return true
+  //   },
+  // })
 
 
   const [tabsMap, setTabsMap] = createSignal({})
   createComputed(() => {
     setTabsMap(() => {
-      return tabs().reduce((acc, curr) => {
+      return readTabs().reduce((acc, curr) => {
         return { ...acc, [curr.id]: curr }
       }, {})
     })
   })
 
-  const [matchedTabs, setMatchedTabs] = createSignal([]);
-  createComputed(() => {
-    setMatchedTabs(mt => {
-      if (mt.length == 0) {
-        return tabs().map(t => t.id)
-      }
-      return [...mt]
-    })
-  })
+  // const [matchedTabs, setMatchedTabs] = createSignal([]);
+  // createComputed(() => {
+  //   setMatchedTabs(mt => {
+  //     if (mt.length == 0) {
+  //       return tabs().map(t => t.id)
+  //     }
+  //     return [...mt]
+  //   })
+  // })
 
   const [query, setQuery] = createSignal('');
   const [activeMatch, setActiveMatch] = createSignal(0);
 
+  const matchedTabs = createMemo(() => fuzzyFindTabs(readTabs(), query()), [], {
+    // equals: false,
+    equals: (prev, next) => {
+      console.log("prev: ", prev, "next:", next)
+      if (prev.length != next.length) {
+        return false
+      }
+      for (let i = 0; i <= next.length; ++i) {
+        if (next[i] != prev[i]) {
+          return false
+        }
+      }
+      return true
+    }
+  });
 
   function onKeyDown(event) {
     // console.log("event:", event.ctrlKey, event.key)
@@ -120,16 +170,28 @@ function App() {
         })()
 
         batch(() => {
-          setMatchedTabs(mt => {
-            return mt.filter(t => {
-              return t !== tabId
-            })
-          })
+          // setMatchedTabs(mt => {
+          //   return mt.filter(t => {
+          //     return t !== tabId
+          //   })
+          // })
           setTabsMap(produce(t => { delete t[tabId] }));
         })
       }
     }
   }
+
+
+  // createComputed(() => {
+  //   const f = new Fuse(tabs() || [], {
+  //     keys: ['title', 'url'],
+  //     includeScore: true,
+  //     useExtendedSearch: true,
+  //   });
+  //   const results = f.search(query());
+  //   console.log("results: ", results)
+  //   setMatchedTabs(results.map(result => result.item.id));
+  // })
 
   return (
     <div class="h-screen w-screen overflow-none py-4 px-4 dark:bg-slate-800" onKeyDown={onKeyDown}>
@@ -139,6 +201,7 @@ function App() {
             e.preventDefault();
             const tabId = matchedTabs()[activeMatch()];
             await browser.tabs.update(tabId, { active: true });
+            setQuery("")
             // await browser.windows.remove(browser.windows.WINDOW_ID_CURRENT);
           }}
           >
@@ -150,13 +213,6 @@ function App() {
               class="bg-slate-100 dark:bg-slate-900 dark:text-blue-50 w-full px-4 py-2 text-lg leading-4 tracking-wider focus:outline-none sticky"
               onInput={(e) => {
                 setQuery(e.target.value);
-                const f = new Fuse(tabs() || [], {
-                  keys: ['title', 'url'],
-                  includeScore: true,
-                  useExtendedSearch: true,
-                });
-                const results = f.search(e.target.value);
-                setMatchedTabs(results.map(result => result.item.id));
               }}
             />
           </form>
