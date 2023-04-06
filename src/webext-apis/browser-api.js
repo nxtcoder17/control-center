@@ -18,3 +18,7 @@ browserApi.toggleMute = async (tabId) => {
     muted: !tab.mutedInfo.muted
   })
 }
+
+browserApi.closeTab = async (tabId) => {
+  return browser.tabs.remove(tabId)
+}

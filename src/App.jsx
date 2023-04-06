@@ -1,5 +1,5 @@
 import { produce } from "immer";
-import { For, createResource, createSignal, createComputed, onCleanup, onMount, createEffect } from "solid-js";
+import { For, createResource, createSignal, createComputed, onCleanup, batch } from "solid-js";
 
 import { Tab } from './components/tab';
 import { browserApi } from "./webext-apis/browser-api";
@@ -110,15 +110,26 @@ function App() {
       }
       return
     }
-  }
 
-  // const [activeMatchRef, setActiveMatchRef] = createSignal(null);
-  // createEffect(() => {
-  //   if (activeMatchRef()) {
-  //     console.log("activeMatchRef:", activeMatchRef())
-  //     activeMatchRef().scrollIntoView()
-  //   }
-  // })
+    if (event.ctrlKey && event.key === "d") {
+      event.preventDefault();
+      const tabId = matchedTabs()[activeMatch()];
+      if (tabId) {
+        (async () => {
+          await browserApi.closeTab(tabId);
+        })()
+
+        batch(() => {
+          setMatchedTabs(mt => {
+            return mt.filter(t => {
+              return t !== tabId
+            })
+          })
+          setTabsMap(produce(t => { delete t[tabId] }));
+        })
+      }
+    }
+  }
 
   return (
     <div class="h-screen w-screen overflow-none py-4 px-4 dark:bg-slate-800" onKeyDown={onKeyDown}>
@@ -128,7 +139,7 @@ function App() {
             e.preventDefault();
             const tabId = matchedTabs()[activeMatch()];
             await browser.tabs.update(tabId, { active: true });
-            await browser.windows.remove(browser.windows.WINDOW_ID_CURRENT);
+            // await browser.windows.remove(browser.windows.WINDOW_ID_CURRENT);
           }}
           >
             <input

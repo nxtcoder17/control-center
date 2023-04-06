@@ -6,7 +6,6 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "vite",
-    "watch": "vite build --watch --mode development --minify false",
     "dev": "vite dev",
     "build": "vite build",
     "serve": "vite preview",
