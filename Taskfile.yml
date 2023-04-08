@@ -3,7 +3,8 @@ version: 3
 tasks:
   dev:
     cmds:
-      - fwatcher -d "$PWD" -e "pnpm run build" --ext ".jsx"
+      # - fwatcher -d "$PWD" -e "pnpm run build" --ext ".jsx"
+      - fwatcher -e "pnpm run build" --ext ".jsx" --ext ".js"
 
   build:
     cmds:

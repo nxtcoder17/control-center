@@ -1,5 +1,5 @@
 import { produce } from "immer";
-import { For, createResource, createSignal, createComputed, onCleanup, batch, createEffect, createMemo } from "solid-js";
+import { For, createSignal, createComputed, onCleanup, batch, createMemo, createEffect } from "solid-js";
 
 import { Tab } from './components/tab';
 import { browserApi } from "./webext-apis/browser-api";
@@ -7,13 +7,13 @@ import Fuse from 'fuse.js';
 import { spotifyWebControls } from "./webext-apis/spotify-controls";
 
 function fuzzyFindTabs(tabs, query) {
-  // console.log("tabs: ", tabs, "query: ", query)
   if (query === "") {
     return tabs.map(item => item.id)
   }
   const f = new Fuse(tabs || [], {
     keys: ['title', 'url'],
-    includeScore: true,
+    includeScore: false,
+    includeMatches: true,
     useExtendedSearch: true,
   });
   const results = f.search(query);
@@ -22,68 +22,14 @@ function fuzzyFindTabs(tabs, query) {
 }
 
 function App() {
-  const [readTabs, { refetch }] = createResource(async () => {
-    return browserApi.listAllTabs();
-  }, {
-    initialValue: [],
-  });
-
-  // let timer = setInterval(() => {
-  //   refetch()
-  // }, 500)
-  // onCleanup(() => clearInterval(timer))
-
-  // const readTabs = createMemo(() => {
-  //   const t = tabs()
-  //   return t;
-  // }, null, {
-  //   equals: (prev, next) => {
-  //     if (prev.length != next.length) {
-  //       return false
-  //     }
-  //     for (let i = 0; i < next.length; ++i) {
-  //       // if (JSON.stringify(next[i]) !== JSON.stringify(prev[i])) {
-  //       console.log("next[i].id == prev[i].id", next[i].id, prev[i].id, next[i].id == prev[i].id)
-  //       if (next[i].id != prev[i].id) {
-  //         return false
-  //       }
-  //     }
-  //     return true
-  //   },
-  // })
-
-
-  const [tabsMap, setTabsMap] = createSignal({})
-  createComputed(() => {
-    setTabsMap(() => {
-      return readTabs().reduce((acc, curr) => {
-        return { ...acc, [curr.id]: curr }
-      }, {})
-    })
-  })
-
-  // const [matchedTabs, setMatchedTabs] = createSignal([]);
-  // createComputed(() => {
-  //   setMatchedTabs(mt => {
-  //     if (mt.length == 0) {
-  //       return tabs().map(t => t.id)
-  //     }
-  //     return [...mt]
-  //   })
-  // })
-
-  const [query, setQuery] = createSignal('');
-  const [activeMatch, setActiveMatch] = createSignal(0);
-
-  const matchedTabs = createMemo(() => fuzzyFindTabs(readTabs(), query()), [], {
-    // equals: false,
+  const [tabs, setTabs] = createSignal([], {
     equals: (prev, next) => {
-      console.log("prev: ", prev, "next:", next)
+      // console.log("prev2: ", prev, "next2:", next)
       if (prev.length != next.length) {
         return false
       }
       for (let i = 0; i <= next.length; ++i) {
-        if (next[i] != prev[i]) {
+        if (!browserApi.areTabsEqual(prev[i], next[i])) {
           return false
         }
       }
@@ -91,14 +37,39 @@ function App() {
     }
   });
 
-  function onKeyDown(event) {
-    // console.log("event:", event.ctrlKey, event.key)
-    // eslint-disable-next-line default-case
+  let timer = setInterval(() => {
+    (async () => {
+      setTabs(await browserApi.listAllTabs())
+    })()
+  }, 500)
+  onCleanup(() => clearInterval(timer))
 
-    // console.log("tabId: ", matchedTabs()[activeMatch()])
-    // console.log("active tab: ", tabsMap()[matchedTabs()[activeMatch()]])
-    // console.log("active url: ", tabsMap()[matchedTabs()[activeMatch()]].url)
-    //
+  const [tabsMap, setTabsMap] = createSignal({})
+  createComputed(() => {
+    setTabsMap(() => {
+      return tabs().reduce((acc, curr) => {
+        return { ...acc, [curr.id]: curr }
+      }, {})
+    })
+  })
+
+  const [query, setQuery] = createSignal('');
+  const [activeMatch, setActiveMatch] = createSignal(0);
+
+  createEffect(() => {
+    // cycles up and down arrow in list
+    if (activeMatch() >= matchedTabs().length) {
+      setActiveMatch(0)
+    }
+
+    if (activeMatch() < 0) {
+      setActiveMatch(matchedTabs().length - 1)
+    }
+  })
+
+  const matchedTabs = createMemo(() => fuzzyFindTabs(tabs(), query()));
+
+  function onKeyDown(event) {
     const activeTabId = matchedTabs()[activeMatch()]
 
     if (event.key == "ArrowRight" && tabsMap()[activeTabId]?.url?.includes("spotify.com")) {
@@ -130,9 +101,9 @@ function App() {
       console.log("this tab should be toggled pin/unpin")
       const tabId = matchedTabs()[activeMatch()];
       if (tabId) {
-        setTabsMap(produce(t => {
-          t[tabId].pinned = !t[tabId].pinned;
-        }));
+        // setTabsMap(produce(t => {
+        //   t[tabId].pinned = !t[tabId].pinned;
+        // }));
         (async () => {
           await browserApi.togglePin(tabId);
         })()
@@ -151,9 +122,9 @@ function App() {
       console.log("this tab should be toggled muted/unmute")
       const tabId = matchedTabs()[activeMatch()];
       if (tabId) {
-        setTabsMap(produce(t => {
-          t[tabId].mutedInfo.muted = !t[tabId].mutedInfo.muted;
-        }));
+        // setTabsMap(produce(t => {
+        //   t[tabId].mutedInfo.muted = !t[tabId].mutedInfo.muted;
+        // }));
         (async () => {
           await browserApi.toggleMute(tabId);
         })()
@@ -181,18 +152,6 @@ function App() {
     }
   }
 
-
-  // createComputed(() => {
-  //   const f = new Fuse(tabs() || [], {
-  //     keys: ['title', 'url'],
-  //     includeScore: true,
-  //     useExtendedSearch: true,
-  //   });
-  //   const results = f.search(query());
-  //   console.log("results: ", results)
-  //   setMatchedTabs(results.map(result => result.item.id));
-  // })
-
   return (
     <div class="h-screen w-screen overflow-none py-4 px-4 dark:bg-slate-800" onKeyDown={onKeyDown}>
       <div class="h-full w-full overflow-auto">
@@ -217,6 +176,7 @@ function App() {
             />
           </form>
 
+          <div class="text-medium text-2xl dark:text-gray-200">Tabs ({tabs().length})</div>
           <For each={matchedTabs()}>
             {(tabId, idx) => (
               <Tab
@@ -230,6 +190,21 @@ function App() {
               />
             )}
           </For>
+
+          {/* <div class="text-medium text-2xl dark:text-gray-200">Commands</div> */}
+          {/* <For each={Object.keys(browserCommands)}> */}
+          {/*   {(command, idx) => ( */}
+          {/*     <TabItem */}
+          {/*       // isSelected={activeMatch() === idx()} */}
+          {/*       label={command} */}
+          {/*       onClick={() => { */}
+          {/*         (async () => { */}
+          {/*           await browserCommands[command]() */}
+          {/*         })(); */}
+          {/*       }} */}
+          {/*     /> */}
+          {/*   )} */}
+          {/* </For> */}
         </div>
       </div>
     </div>
