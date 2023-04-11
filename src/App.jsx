@@ -1,5 +1,5 @@
 import { produce } from "immer";
-import { For, createSignal, createComputed, onCleanup, batch, createMemo, createEffect } from "solid-js";
+import { For, createSignal, batch, createMemo, createEffect, createResource } from "solid-js";
 
 import { Tab } from './components/tab';
 import { browserApi } from "./webext-apis/browser-api";
@@ -22,35 +22,54 @@ function fuzzyFindTabs(tabs, query) {
 }
 
 function App() {
-  const [tabs, setTabs] = createSignal([], {
-    equals: (prev, next) => {
-      // console.log("prev2: ", prev, "next2:", next)
-      if (prev.length != next.length) {
-        return false
-      }
-      for (let i = 0; i <= next.length; ++i) {
-        if (!browserApi.areTabsEqual(prev[i], next[i])) {
-          return false
-        }
-      }
-      return true
-    }
-  });
+  // const [tabs, setTabs] = createSignal([], {
+  //   equals: (prev, next) => {
+  //     console.log("[equals]:", "start", prev.length, next.length)
+  //     if (prev.length != next.length) {
+  //       return false
+  //     }
+  //     console.log("[equals]:", "mid")
+  //     for (let i = 0; i <= next.length; ++i) {
+  //       if (!browserApi.areTabsEqual(prev[i], next[i])) {
+  //         return false
+  //       }
+  //     }
+  //     console.log("[equals]:", "end")
+  //     return true
+  //   }
+  // });
 
-  let timer = setInterval(() => {
-    (async () => {
-      setTabs(await browserApi.listAllTabs())
-    })()
-  }, 500)
-  onCleanup(() => clearInterval(timer))
 
-  const [tabsMap, setTabsMap] = createSignal({})
-  createComputed(() => {
-    setTabsMap(() => {
-      return tabs().reduce((acc, curr) => {
-        return { ...acc, [curr.id]: curr }
-      }, {})
-    })
+  // let timer = setInterval(() => {
+  //   (async () => {
+  //     const t = await browserApi.listAllTabs()
+  //     console.log("here ...", t)
+  //     setTabs(t)
+  //   })()
+  // }, 500)
+  // onCleanup(() => clearInterval(timer))
+
+  // eslint-disable-next-line solid/reactivity
+  const [tabsMap, { mutate }] = createResource(async () => {
+    const t = await browserApi.listAllTabs()
+    return t.reduce((acc, curr) => {
+      return { ...acc, [curr.id]: curr }
+    }, {})
+  }, {
+    initialValue: {},
+  })
+
+  browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    console.log("tab:", tab)
+    mutate(produce(t => {
+      t[tabId] = tab
+    }))
+  })
+
+  browser.tabs.onRemoved.addListener((tabId, _removeInfo) => {
+    mutate(produce(t => {
+      delete t[tabId];
+    }))
   })
 
   const [query, setQuery] = createSignal('');
@@ -67,7 +86,7 @@ function App() {
     }
   })
 
-  const matchedTabs = createMemo(() => fuzzyFindTabs(tabs(), query()));
+  const matchedTabs = createMemo(() => fuzzyFindTabs(Object.values(tabsMap()), query()));
 
   function onKeyDown(event) {
     const activeTabId = matchedTabs()[activeMatch()]
@@ -146,7 +165,7 @@ function App() {
           //     return t !== tabId
           //   })
           // })
-          setTabsMap(produce(t => { delete t[tabId] }));
+          // mutate(produce(t => { delete t[tabId] }));
         })
       }
     }
@@ -176,11 +195,11 @@ function App() {
             />
           </form>
 
-          <div class="text-medium text-2xl dark:text-gray-200">Tabs ({tabs().length})</div>
+          <div class="text-medium text-2xl dark:text-gray-200">Tabs ({Object.keys(tabsMap()).length})</div>
           <For each={matchedTabs()}>
             {(tabId, idx) => (
               <Tab
-                tabInfo={tabsMap()[tabId]}
+                tabInfo={tabsMap()[tabId] || {}}
                 isSelected={activeMatch() === idx()}
                 onClick={() => {
                   (async () => {
