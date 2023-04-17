@@ -1,51 +1,36 @@
-let windowId = ""
+const url = browser.runtime.getURL('src/background.html');
 
-const togglePopup = async () => {
-  // const url = browser.runtime.getURL('src/browser-action/popup.html')
-  // const url = browser.runtime.getURL('dist/index.html')
-  // const url = browser.runtime.getURL('http://localhost:3000/index.html')
-  // const url = browser.runtime.getURL('public/background.html')
-  const url = browser.runtime.getURL('dist/public/background.html')
-
-  // await browser.tabs.update(25, { active: true })
-
-  // let windowId = ""
-  // try {
-  //   windowId = await storageGet("windowId")
-  //   console.log("windowId:", windowId)
-  // } catch (err) {
-  //   console.log("ERR:", err)
-  // }
-
-  if (windowId) {
-    try {
-      await browser.windows.remove(windowId)
-      return
-    } catch (err) {
-      console.error(`can not remove control center window, with windowId (${JSON.stringify(windowId)})`)
-    } finally {
-      windowId = ""
-      // await storageReset("windowId")
-    }
-  }
-
+(async () => {
   try {
-    const createdWindow = await browser.windows.create({
-      url,
-      focused: false,
-      type: "popup",
-      height: 480,
-      width: 640,
+    const extensionTab = await browser.tabs.create({
+      active: false,
+      url: url,
+      pinned: true,
     })
-    windowId = createdWindow.id
-    // await storageSet("windowId", createdWindow.id)
-    // console.log("here 3")
+
+    const extensionTabId = extensionTab.id
+
+    let prevTabId = null
+    const toggleTab = async () => {
+      try {
+        const [currTab] = await browser.tabs.query({ active: true })
+        if (currTab.id === extensionTabId && prevTabId) {
+          return browser.tabs.update(prevTabId, { active: true })
+        }
+
+        prevTabId = currTab.id
+        await browser.tabs.update(extensionTabId, {
+          active: true,
+          openerTabId: prevTabId,
+        })
+      } catch (err) {
+        console.error("[ERR]:", err)
+      }
+    }
+
+    browser.commands.onCommand.addListener(toggleTab)
+    browser.browserAction.onClicked.addListener(toggleTab)
   } catch (err) {
-    console.log(`Error: ${error}`);
+    console.error("[err]: ", err)
   }
-}
-
-console.log("here from backgroud.js");
-
-browser.commands.onCommand.addListener(togglePopup)
-browser.browserAction.onClicked.addListener(togglePopup)
+})()

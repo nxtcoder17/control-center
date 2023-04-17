@@ -1,0 +1,17 @@
+version: 3
+
+tasks:
+  dev:firefox:
+    cmds:
+      # - fwatcher -d "$PWD" -e "pnpm run build" --ext ".jsx"
+      - fwatcher -e "pnpm run build:firefox" --ext ".jsx" --ext ".js"
+  dev:chrome:
+    cmds:
+      # - fwatcher -d "$PWD" -e "pnpm run build" --ext ".jsx"
+      - fwatcher -e "pnpm run build:chrome" --ext ".jsx" --ext ".js"
+
+
+  build:
+    cmds:
+      - npm run build
+

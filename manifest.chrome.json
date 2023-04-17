@@ -6,20 +6,19 @@
   "description": "Control Center for Firefox",
 
   "icons": {
-    "48": "static/icons/logo-48.png"
+    "48": "./icons/logo-48.png"
   },
 
   "content_scripts": [
     {
       "matches": ["*://open.spotify.com/*"],
-      "js": ["src/content-scripts/spotify.js"]
+      "js": ["./src/content-scripts/spotify.js"]
     }
   ],
 
   "background": {
-    "scripts": ["src/scripts/background.js"]
+    "scripts": ["./src/scripts/background.js"]
   },
-
 
   "permissions": [
     "activeTab",
@@ -29,21 +28,14 @@
 
   "commands": {
     "control-center": {
-      "suggested_key": { "default": "Ctrl+E" },
+      "suggested_key": { "default": "Ctrl+H" },
       "description": "Send a 'toggle-feature' event to the extension"
     }
   },
 
-  "browser_specific_settings": {
-    "gecko": {
-      "id": "control-center@nxtcoder17.me",
-      "strict_min_version": "63.0"
-    }
-  },
-
   "browser_action": {
-    "default_icon": "static/icons/logo-48.png",
+    "default_icon": "icons/logo-48.png",
     "default_title": "Control Center",
-    "default_popup": "dist/public/background.html"
+    "default_popup": "src/background.html"
   }
 }

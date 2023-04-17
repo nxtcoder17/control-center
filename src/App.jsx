@@ -1,54 +1,68 @@
 import { produce } from "immer";
-import { For, createResource, createSignal, createComputed, onCleanup, onMount, createEffect } from "solid-js";
+import { For, createSignal, batch, createMemo, createEffect, createResource } from "solid-js";
 
 import { Tab } from './components/tab';
 import { browserApi } from "./webext-apis/browser-api";
 import Fuse from 'fuse.js';
 import { spotifyWebControls } from "./webext-apis/spotify-controls";
 
-function App() {
-  const [tabs, { refetch }] = createResource(async () => {
-    return browserApi.listAllTabs();
-  }, {
-    initialValue: [],
+function fuzzyFindTabs(tabs, query) {
+  const sortPredicate = (a, b) => a.index - b.index;
+
+  if (query === "") {
+    return tabs.sort(sortPredicate).map(item => item.id)
+  }
+  const f = new Fuse(tabs || [], {
+    keys: ['index', 'title', 'url'],
+    includeScore: false,
+    includeMatches: true,
+    useExtendedSearch: true,
   });
-  let timer = setInterval(() => {
-    refetch()
-  }, 500)
-  onCleanup(() => clearInterval(timer))
+  const results = f.search(query);
+  console.log("results: ", results)
+  return results.sort(sortPredicate).map(result => result.item.id)
+}
 
-
-  const [tabsMap, setTabsMap] = createSignal({})
-  createComputed(() => {
-    setTabsMap(() => {
-      return tabs().reduce((acc, curr) => {
-        return { ...acc, [curr.id]: curr }
-      }, {})
-    })
+function App() {
+  // eslint-disable-next-line solid/reactivity
+  const [tabsMap, { mutate }] = createResource(async () => {
+    const t = await browserApi.listAllTabs()
+    return t.reduce((acc, curr) => {
+      return { ...acc, [curr.id]: curr }
+    }, {})
+  }, {
+    initialValue: {},
   })
 
-  const [matchedTabs, setMatchedTabs] = createSignal([]);
-  createComputed(() => {
-    setMatchedTabs(mt => {
-      if (mt.length == 0) {
-        return tabs().map(t => t.id)
-      }
-      return [...mt]
-    })
+  browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    mutate(produce(t => {
+      t[tabId] = tab
+    }))
+  })
+
+  browser.tabs.onRemoved.addListener((tabId, _removeInfo) => {
+    mutate(produce(t => {
+      delete t[tabId];
+    }))
   })
 
   const [query, setQuery] = createSignal('');
   const [activeMatch, setActiveMatch] = createSignal(0);
 
+  createEffect(() => {
+    // cycles up and down arrow in list
+    if (activeMatch() >= matchedTabs().length) {
+      setActiveMatch(0)
+    }
+
+    if (activeMatch() < 0) {
+      setActiveMatch(matchedTabs().length - 1)
+    }
+  })
+
+  const matchedTabs = createMemo(() => fuzzyFindTabs(Object.values(tabsMap()), query()));
 
   function onKeyDown(event) {
-    // console.log("event:", event.ctrlKey, event.key)
-    // eslint-disable-next-line default-case
-
-    // console.log("tabId: ", matchedTabs()[activeMatch()])
-    // console.log("active tab: ", tabsMap()[matchedTabs()[activeMatch()]])
-    // console.log("active url: ", tabsMap()[matchedTabs()[activeMatch()]].url)
-    //
     const activeTabId = matchedTabs()[activeMatch()]
 
     if (event.key == "ArrowRight" && tabsMap()[activeTabId]?.url?.includes("spotify.com")) {
@@ -80,9 +94,9 @@ function App() {
       console.log("this tab should be toggled pin/unpin")
       const tabId = matchedTabs()[activeMatch()];
       if (tabId) {
-        setTabsMap(produce(t => {
-          t[tabId].pinned = !t[tabId].pinned;
-        }));
+        // setTabsMap(produce(t => {
+        //   t[tabId].pinned = !t[tabId].pinned;
+        // }));
         (async () => {
           await browserApi.togglePin(tabId);
         })()
@@ -101,24 +115,35 @@ function App() {
       console.log("this tab should be toggled muted/unmute")
       const tabId = matchedTabs()[activeMatch()];
       if (tabId) {
-        setTabsMap(produce(t => {
-          t[tabId].mutedInfo.muted = !t[tabId].mutedInfo.muted;
-        }));
+        // setTabsMap(produce(t => {
+        //   t[tabId].mutedInfo.muted = !t[tabId].mutedInfo.muted;
+        // }));
         (async () => {
           await browserApi.toggleMute(tabId);
         })()
       }
       return
     }
-  }
 
-  // const [activeMatchRef, setActiveMatchRef] = createSignal(null);
-  // createEffect(() => {
-  //   if (activeMatchRef()) {
-  //     console.log("activeMatchRef:", activeMatchRef())
-  //     activeMatchRef().scrollIntoView()
-  //   }
-  // })
+    if (event.ctrlKey && event.key === "d") {
+      event.preventDefault();
+      const tabId = matchedTabs()[activeMatch()];
+      if (tabId) {
+        (async () => {
+          await browserApi.closeTab(tabId);
+        })()
+
+        batch(() => {
+          // setMatchedTabs(mt => {
+          //   return mt.filter(t => {
+          //     return t !== tabId
+          //   })
+          // })
+          // mutate(produce(t => { delete t[tabId] }));
+        })
+      }
+    }
+  }
 
   return (
     <div class="h-screen w-screen overflow-none py-4 px-4 dark:bg-slate-800" onKeyDown={onKeyDown}>
@@ -128,7 +153,8 @@ function App() {
             e.preventDefault();
             const tabId = matchedTabs()[activeMatch()];
             await browser.tabs.update(tabId, { active: true });
-            await browser.windows.remove(browser.windows.WINDOW_ID_CURRENT);
+            setQuery("")
+            // await browser.windows.remove(browser.windows.WINDOW_ID_CURRENT);
           }}
           >
             <input
@@ -139,21 +165,16 @@ function App() {
               class="bg-slate-100 dark:bg-slate-900 dark:text-blue-50 w-full px-4 py-2 text-lg leading-4 tracking-wider focus:outline-none sticky"
               onInput={(e) => {
                 setQuery(e.target.value);
-                const f = new Fuse(tabs() || [], {
-                  keys: ['title', 'url'],
-                  includeScore: true,
-                  useExtendedSearch: true,
-                });
-                const results = f.search(e.target.value);
-                setMatchedTabs(results.map(result => result.item.id));
               }}
             />
           </form>
 
+          <div class="text-medium text-2xl dark:text-gray-200">Tabs ({Object.keys(tabsMap()).length})</div>
           <For each={matchedTabs()}>
             {(tabId, idx) => (
               <Tab
-                tabInfo={tabsMap()[tabId]}
+                index={tabsMap()[tabId]?.index}
+                tabInfo={tabsMap()[tabId] || {}}
                 isSelected={activeMatch() === idx()}
                 onClick={() => {
                   (async () => {
@@ -163,6 +184,21 @@ function App() {
               />
             )}
           </For>
+
+          {/* <div class="text-medium text-2xl dark:text-gray-200">Commands</div> */}
+          {/* <For each={Object.keys(browserCommands)}> */}
+          {/*   {(command, idx) => ( */}
+          {/*     <TabItem */}
+          {/*       // isSelected={activeMatch() === idx()} */}
+          {/*       label={command} */}
+          {/*       onClick={() => { */}
+          {/*         (async () => { */}
+          {/*           await browserCommands[command]() */}
+          {/*         })(); */}
+          {/*       }} */}
+          {/*     /> */}
+          {/*   )} */}
+          {/* </For> */}
         </div>
       </div>
     </div>
