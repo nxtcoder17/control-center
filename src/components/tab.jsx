@@ -19,6 +19,8 @@ export const Tab = (props) => {
     ref={ref}
     onClick={() => props.onClick()}>
     <div class="flex-1 flex flex-row items-center gap-2">
+      {/* {props.index != -1 && <span class="text-lg">{props.index}</span>} */}
+      <span class="text-lg">{props.index}</span>
       <div class="h-5 w-5">
         <img src={props.tabInfo.favIconUrl} />
       </div>

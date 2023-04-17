@@ -7,48 +7,23 @@ import Fuse from 'fuse.js';
 import { spotifyWebControls } from "./webext-apis/spotify-controls";
 
 function fuzzyFindTabs(tabs, query) {
+  const sortPredicate = (a, b) => a.index - b.index;
+
   if (query === "") {
-    return tabs.map(item => item.id)
+    return tabs.sort(sortPredicate).map(item => item.id)
   }
   const f = new Fuse(tabs || [], {
-    keys: ['title', 'url'],
+    keys: ['index', 'title', 'url'],
     includeScore: false,
     includeMatches: true,
     useExtendedSearch: true,
   });
   const results = f.search(query);
   console.log("results: ", results)
-  return results.map(result => result.item.id)
+  return results.sort(sortPredicate).map(result => result.item.id)
 }
 
 function App() {
-  // const [tabs, setTabs] = createSignal([], {
-  //   equals: (prev, next) => {
-  //     console.log("[equals]:", "start", prev.length, next.length)
-  //     if (prev.length != next.length) {
-  //       return false
-  //     }
-  //     console.log("[equals]:", "mid")
-  //     for (let i = 0; i <= next.length; ++i) {
-  //       if (!browserApi.areTabsEqual(prev[i], next[i])) {
-  //         return false
-  //       }
-  //     }
-  //     console.log("[equals]:", "end")
-  //     return true
-  //   }
-  // });
-
-
-  // let timer = setInterval(() => {
-  //   (async () => {
-  //     const t = await browserApi.listAllTabs()
-  //     console.log("here ...", t)
-  //     setTabs(t)
-  //   })()
-  // }, 500)
-  // onCleanup(() => clearInterval(timer))
-
   // eslint-disable-next-line solid/reactivity
   const [tabsMap, { mutate }] = createResource(async () => {
     const t = await browserApi.listAllTabs()
@@ -60,7 +35,6 @@ function App() {
   })
 
   browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-    console.log("tab:", tab)
     mutate(produce(t => {
       t[tabId] = tab
     }))
@@ -199,6 +173,7 @@ function App() {
           <For each={matchedTabs()}>
             {(tabId, idx) => (
               <Tab
+                index={tabsMap()[tabId]?.index}
                 tabInfo={tabsMap()[tabId] || {}}
                 isSelected={activeMatch() === idx()}
                 onClick={() => {

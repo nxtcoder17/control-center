@@ -1,4 +1,4 @@
-const manifest = {
+{
   "manifest_version": 2,
   "name": "Control Center",
   "version": "1.0",
@@ -6,20 +6,19 @@ const manifest = {
   "description": "Control Center for Firefox",
 
   "icons": {
-    "48": "static/icons/logo-48.png"
+    "48": "icons/logo-48.png"
   },
 
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "js": ["src/content-scripts/content-script.js"]
+      "matches": ["*://open.spotify.com/*"],
+      "js": ["src/content-scripts/spotify.js"]
     }
   ],
 
   "background": {
     "scripts": ["src/scripts/background.js"]
   },
-
 
   "permissions": [
     "activeTab",
@@ -36,16 +35,14 @@ const manifest = {
 
   "browser_specific_settings": {
     "gecko": {
-      "id": "{e6ad355f-be44-4c03-9d49-a39f84ac702a}",
+      "id": "control-center@nxtcoder17.me",
       "strict_min_version": "63.0"
     }
   },
 
   "browser_action": {
-    "default_icon": "static/icons/logo-48.png",
-    "default_title": "Control Center"
+    "default_icon": "icons/logo-48.png",
+    "default_title": "Control Center",
+    "default_popup": "src/background.html"
   }
-};
-
-export default manifest;
-
+}
