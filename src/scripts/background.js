@@ -2,13 +2,27 @@ const url = browser.runtime.getURL('src/background.html');
 
 (async () => {
   try {
-    const extensionTab = await browser.tabs.create({
-      active: false,
-      url: url,
+    const t = await browser.tabs.query({
+      currentWindow: true,
       pinned: true,
+      url: url,
     })
 
-    const extensionTabId = extensionTab.id
+    const extensionTabId = await (async () => {
+      if (t.length == 0) {
+        const extensionTab = await browser.tabs.create({
+          active: false,
+          url: url,
+          pinned: true,
+        })
+
+        return extensionTab.id
+      }
+
+      return t[0].id
+    })()
+
+    console.log("extension tabId: ", extensionTabId)
 
     let prevTabId = null
     const toggleTab = async () => {

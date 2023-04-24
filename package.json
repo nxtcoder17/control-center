@@ -4,17 +4,14 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "start": "vite",
     "dev": "vite dev",
     "build": "vite build",
     "build:dev": "vite build --minify false --mode dev",
-    "build:firefox": "vite build --minify false --mode dev && cp manifest.firefox.json ./manifest.json",
-    "build:chrome": "vite build --minify false --mode dev && cp manifest.chrome.json ./manifest.json",
+    "build:firefox": "vite build --minify false --mode dev",
+    "build:chrome": "vite build --minify false --mode dev",
     "serve": "vite preview",
-    "web-ext": "cd dist && web-ext run --start-url \"about:debugging#/runtime/this-firefox\" ",
-    "serve:firefox": "web-ext run --start-url \"about:debugging#/runtime/this-firefox\"  --source-dir ./dist/",
-    "serve:chrome": "web-ext run -t chromium --start-url \"https://google.com\" --source-dir ./dist/"
+    "web-ext": "cd dist && web-ext run --start-url \"about:debugging#/runtime/this-firefox\""
   },
   "keywords": [],
   "author": "",

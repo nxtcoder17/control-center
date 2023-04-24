@@ -1,5 +1,5 @@
 import { produce } from "immer";
-import { For, createSignal, batch, createMemo, createEffect, createResource } from "solid-js";
+import { For, createSignal, createMemo, createEffect, createResource } from "solid-js";
 
 import { Tab } from './components/tab';
 import { browserApi } from "./webext-apis/browser-api";
@@ -12,12 +12,14 @@ function fuzzyFindTabs(tabs, query) {
   if (query === "") {
     return tabs.sort(sortPredicate).map(item => item.id)
   }
+
   const f = new Fuse(tabs || [], {
     keys: ['index', 'title', 'url'],
     includeScore: false,
     includeMatches: true,
     useExtendedSearch: true,
   });
+
   const results = f.search(query);
   console.log("results: ", results)
   return results.sort(sortPredicate).map(result => result.item.id)
@@ -59,6 +61,13 @@ function App() {
       setActiveMatch(matchedTabs().length - 1)
     }
   })
+
+  // Reset activeMatch everytime, when query changes
+  createEffect((prev) => {
+    if (prev !== query()) {
+      setActiveMatch(0)
+    }
+  }, "")
 
   const matchedTabs = createMemo(() => fuzzyFindTabs(Object.values(tabsMap()), query()));
 
@@ -115,9 +124,6 @@ function App() {
       console.log("this tab should be toggled muted/unmute")
       const tabId = matchedTabs()[activeMatch()];
       if (tabId) {
-        // setTabsMap(produce(t => {
-        //   t[tabId].mutedInfo.muted = !t[tabId].mutedInfo.muted;
-        // }));
         (async () => {
           await browserApi.toggleMute(tabId);
         })()
@@ -132,15 +138,6 @@ function App() {
         (async () => {
           await browserApi.closeTab(tabId);
         })()
-
-        batch(() => {
-          // setMatchedTabs(mt => {
-          //   return mt.filter(t => {
-          //     return t !== tabId
-          //   })
-          // })
-          // mutate(produce(t => { delete t[tabId] }));
-        })
       }
     }
   }
@@ -154,7 +151,6 @@ function App() {
             const tabId = matchedTabs()[activeMatch()];
             await browser.tabs.update(tabId, { active: true });
             setQuery("")
-            // await browser.windows.remove(browser.windows.WINDOW_ID_CURRENT);
           }}
           >
             <input
@@ -184,21 +180,6 @@ function App() {
               />
             )}
           </For>
-
-          {/* <div class="text-medium text-2xl dark:text-gray-200">Commands</div> */}
-          {/* <For each={Object.keys(browserCommands)}> */}
-          {/*   {(command, idx) => ( */}
-          {/*     <TabItem */}
-          {/*       // isSelected={activeMatch() === idx()} */}
-          {/*       label={command} */}
-          {/*       onClick={() => { */}
-          {/*         (async () => { */}
-          {/*           await browserCommands[command]() */}
-          {/*         })(); */}
-          {/*       }} */}
-          {/*     /> */}
-          {/*   )} */}
-          {/* </For> */}
         </div>
       </div>
     </div>
