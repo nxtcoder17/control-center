@@ -10,12 +10,7 @@ const pauseSong = () => {
   document.querySelector("div.player-controls button[data-testid='control-button-playpause']").click()
 }
 
-// console.log("hello from spotify content script")
-// document.body.style = "background: blue";
-
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
-  console.log("sender:", sender)
-
   if (request.method == 'pause') {
     pauseSong()
     sendResponse("ok")

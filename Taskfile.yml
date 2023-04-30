@@ -4,14 +4,23 @@ tasks:
   dev:firefox:
     cmds:
       # - fwatcher -d "$PWD" -e "pnpm run build" --ext ".jsx"
-      - fwatcher -e "pnpm run build:firefox" --ext ".jsx" --ext ".js"
+      - fwatcher -e "pnpm run build:firefox" --ext ".jsx" --ext ".js" --exclude-dir "dist"
+
   dev:chrome:
     cmds:
       # - fwatcher -d "$PWD" -e "pnpm run build" --ext ".jsx"
-      - fwatcher -e "pnpm run build:chrome" --ext ".jsx" --ext ".js"
-
+      - fwatcher -e "pnpm run build:chrome" --ext ".jsx" --ext ".js" --exclude-dir "dist"
 
   build:
     cmds:
       - npm run build
+
+
+  zip:build:
+    cmds:
+      - task: build
+      - |+
+        pushd dist
+        zip -r ../control-center.zip *
+        popd
 
