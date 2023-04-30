@@ -1,10 +1,11 @@
 import { produce } from "immer";
-import { For, createSignal, createMemo, createEffect, createResource } from "solid-js";
+import { createSignal, createMemo, createEffect, createResource } from "solid-js";
 
-import { Tab } from './components/tab';
 import { browserApi } from "./webext-apis/browser-api";
 import Fuse from 'fuse.js';
 import { spotifyWebControls } from "./webext-apis/spotify-controls";
+import { TabManager } from "./components/tab-manager";
+import { logger } from "./pkg/logger";
 
 function fuzzyFindTabs(tabs, query) {
   const sortPredicate = (a, b) => a.index - b.index;
@@ -29,20 +30,28 @@ function App() {
   // eslint-disable-next-line solid/reactivity
   const [tabsMap, { mutate }] = createResource(async () => {
     const t = await browserApi.listAllTabs()
-    return t.reduce((acc, curr) => {
+    const lTabs = t.reduce((acc, curr) => {
       const x = browser.runtime.getURL("src/background.html")
-      console.log("current: ", curr.url, typeof curr.url, "extension background.html:", x, typeof x, curr.url === x)
+      // console.log("current: ", curr.url, typeof curr.url, "extension background.html:", x, typeof x, curr.url === x)
       if (curr.url === browser.runtime.getURL("src/background.html")) {
+        logger.info({ backgrounUrl: x, currentUrl: curr.url }, "this tab belongs to a firefox extension, so leaving it out")
         return acc
       }
       return { ...acc, [curr.id]: curr }
     }, {})
+
+    logger.info(Object.entries(lTabs).map(([k, v]) => ({ [k]: v.url })), "list of tabs")
+
+    return lTabs
   }, {
     initialValue: {},
   })
 
   browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     mutate(produce(t => {
+      if (tab.url === browser.runtime.getURL("src/background.html")) {
+        return
+      }
       t[tabId] = tab
     }))
   })
@@ -74,7 +83,9 @@ function App() {
     }
   }, "")
 
-  const matchedTabs = createMemo(() => fuzzyFindTabs(Object.values(tabsMap()), query()));
+  const matchedTabs = createMemo(() => {
+    return fuzzyFindTabs(Object.values(tabsMap()), query())
+  });
 
   function onKeyDown(event) {
     const activeTabId = matchedTabs()[activeMatch()]
@@ -175,20 +186,27 @@ function App() {
           </form>
 
           <div class="text-medium text-2xl dark:text-gray-200">Tabs ({Object.keys(matchedTabs() || {}).length}/{Object.keys(tabsMap()).length})</div>
-          <For each={matchedTabs()}>
-            {(tabId, idx) => (
-              <Tab
-                index={tabsMap()[tabId]?.index}
-                tabInfo={tabsMap()[tabId] || {}}
-                isSelected={activeMatch() === idx()}
-                onClick={() => {
-                  (async () => {
-                    await browser.tabs.update(tabId, { active: true });
-                  })();
-                }}
-              />
-            )}
-          </For>
+
+          <TabManager
+            matchedTabs={matchedTabs()}
+            tabsMap={tabsMap()}
+            activeMatch={activeMatch()}
+          />
+
+          {/* <For each={matchedTabs()}> */}
+          {/*   {(tabId, idx) => ( */}
+          {/*     <Tab */}
+          {/*       index={tabsMap()[tabId]?.index} */}
+          {/*       tabInfo={tabsMap()[tabId] || {}} */}
+          {/*       isSelected={activeMatch() === idx()} */}
+          {/*       onClick={() => { */}
+          {/*         (async () => { */}
+          {/*           await browser.tabs.update(tabId, { active: true }); */}
+          {/*         })(); */}
+          {/*       }} */}
+          {/*     /> */}
+          {/*   )} */}
+          {/* </For> */}
         </div>
       </div>
     </div>
