@@ -30,6 +30,11 @@ function App() {
   const [tabsMap, { mutate }] = createResource(async () => {
     const t = await browserApi.listAllTabs()
     return t.reduce((acc, curr) => {
+      const x = browser.runtime.getURL("src/background.html")
+      console.log("current: ", curr.url, typeof curr.url, "extension background.html:", x, typeof x, curr.url === x)
+      if (curr.url === browser.runtime.getURL("src/background.html")) {
+        return acc
+      }
       return { ...acc, [curr.id]: curr }
     }, {})
   }, {
@@ -88,6 +93,13 @@ function App() {
       return
     }
 
+    if ((event.keyCode === 32 || event.which === 32) && tabsMap()[activeTabId].url?.includes("spotify.com")) {
+      (async () => {
+        await spotifyWebControls.pauseSong(activeTabId)
+      })()
+      return
+    }
+
     if (event.key === "ArrowDown") {
       setActiveMatch((am) => am + 1);
       return
@@ -103,9 +115,6 @@ function App() {
       console.log("this tab should be toggled pin/unpin")
       const tabId = matchedTabs()[activeMatch()];
       if (tabId) {
-        // setTabsMap(produce(t => {
-        //   t[tabId].pinned = !t[tabId].pinned;
-        // }));
         (async () => {
           await browserApi.togglePin(tabId);
         })()
@@ -165,7 +174,7 @@ function App() {
             />
           </form>
 
-          <div class="text-medium text-2xl dark:text-gray-200">Tabs ({Object.keys(tabsMap()).length})</div>
+          <div class="text-medium text-2xl dark:text-gray-200">Tabs ({Object.keys(matchedTabs() || {}).length}/{Object.keys(tabsMap()).length})</div>
           <For each={matchedTabs()}>
             {(tabId, idx) => (
               <Tab

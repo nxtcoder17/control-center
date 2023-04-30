@@ -1,6 +1,5 @@
 import { defineConfig } from 'vite';
 import solidPlugin from 'vite-plugin-solid';
-// import browser from "webextension-polyfill";
 import manifest from './manifest.firefox.json';
 import webExtension from "@samrum/vite-plugin-web-extension";
 import fs from 'fs-extra';

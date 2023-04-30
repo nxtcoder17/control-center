@@ -8,6 +8,7 @@ browserApi.areTabsEqual = (prev, next) => {
   if (prev?.id != next?.id) {
     return false
   }
+
   if (prev?.pinned != next?.pinned) {
     return false
   }
@@ -19,6 +20,7 @@ browserApi.areTabsEqual = (prev, next) => {
   if (prev?.title != next?.title) {
     return false
   }
+
   if (prev?.url != next?.url) {
     return false
   }

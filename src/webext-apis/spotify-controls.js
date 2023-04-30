@@ -7,3 +7,7 @@ spotifyWebControls.nextSong = async (tabId) => {
 spotifyWebControls.prevSong = (tabId) => {
   return chrome.tabs.sendMessage(tabId, { method: 'prev' });
 }
+
+spotifyWebControls.pauseSong = (tabId) => {
+  return chrome.tabs.sendMessage(tabId, { method: 'pause' });
+}

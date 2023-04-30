@@ -22,7 +22,7 @@ const url = browser.runtime.getURL('src/background.html');
       return t[0].id
     })()
 
-    console.log("extension tabId: ", extensionTabId)
+    // console.log("extension tabId: ", extensionTabId)
 
     let prevTabId = null
     const toggleTab = async () => {
