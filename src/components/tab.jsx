@@ -25,13 +25,12 @@ export const Tab = (props) => {
         <img src={props.tabInfo.favIconUrl} />
       </div>
       <div class='flex-1 flex justify-between px-2'>
-        <span class="text-lg">{props.tabInfo.title}</span>
-        <span class="text-lg dark:text-gray-500">{props.tabInfo.url}</span>
+        <span class="text-lg w-2/4">{props.tabInfo.title}</span>
+        <span class="text-lg dark:text-gray-500">{props.tabInfo.url.split('?')[0]}</span>
       </div>
     </div>
 
     <div class="flex flex-row gap-2 items-center">
-      {/* <span class="text-sm">{props.tabInfo.pinned ? <TbPinned size="20" class="w-5" /> : ""}</span> */}
       <span class="text-sm">{props.tabInfo.pinned ? <TbPinned class="w-5 h-5" /> : <div class='w-5 h-5' />}</span>
       <span class="text-sm">{props.tabInfo.mutedInfo?.muted ? < TbVolumeOff size="20" /> : ""}</span>
     </div>
