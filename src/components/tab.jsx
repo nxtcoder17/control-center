@@ -2,6 +2,7 @@ import cn from 'classnames'
 import PropTypes from "prop-types";
 import { TbVolumeOff, TbPinned } from 'solid-icons/tb'
 import { createEffect } from 'solid-js';
+import { logger } from '../pkg/logger';
 
 export const Tab = (props) => {
   let ref;
@@ -10,6 +11,13 @@ export const Tab = (props) => {
       ref.scrollIntoView({ behavior: "smooth", block: "end", inline: "nearest" });
     }
   })
+
+  createEffect(() => {
+    logger.info(props.matches, "matches")
+    const x = props.matches.filter(m => m.key === "title").indices.map(midx => props.tabInfo.title.slice(midx[0], midx[1]))
+    logger.info(x, "tab title matches")
+  }, "")
+
 
   return <div
     class={cn("tracking-wide text-gray-700  px-2 py-0.5 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer transition-all flex flex-row justify-between", {

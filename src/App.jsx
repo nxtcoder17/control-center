@@ -1,16 +1,22 @@
 import { produce } from "immer";
-import { For, createSignal, createMemo, createEffect, createResource } from "solid-js";
+import { createSignal, createMemo, createEffect, createResource, For } from "solid-js";
 
-import { Tab } from './components/tab';
 import { browserApi } from "./webext-apis/browser-api";
 import Fuse from 'fuse.js';
 import { spotifyWebControls } from "./webext-apis/spotify-controls";
+import { Tab } from "./components/tab";
+// import { logger } from "./pkg/logger";
 
 function fuzzyFindTabs(tabs, query) {
   const sortPredicate = (a, b) => a.index - b.index;
 
   if (query === "") {
-    return tabs.sort(sortPredicate).map(item => item.id)
+    return {
+      list: tabs.sort(sortPredicate).map(item => item.id),
+      data: tabs.reduce((acc, curr) => {
+        return { ...acc, [curr.id]: curr }
+      }, {})
+    }
   }
 
   const f = new Fuse(tabs || [], {
@@ -20,29 +26,39 @@ function fuzzyFindTabs(tabs, query) {
     useExtendedSearch: true,
   });
 
-  const results = f.search(query);
-  console.log("results: ", results)
-  return results.sort(sortPredicate).map(result => result.item.id)
+  const results = f.search(query)
+
+  return {
+    list: results.sort(sortPredicate).map(result => result.item.id),
+    data: results.reduce((acc, curr) => {
+      return { ...acc, [curr.item.id]: curr }
+    }, {})
+  }
 }
 
 function App() {
   // eslint-disable-next-line solid/reactivity
   const [tabsMap, { mutate }] = createResource(async () => {
     const t = await browserApi.listAllTabs()
-    return t.reduce((acc, curr) => {
-      const x = browser.runtime.getURL("src/background.html")
-      console.log("current: ", curr.url, typeof curr.url, "extension background.html:", x, typeof x, curr.url === x)
+    const lTabs = t.reduce((acc, curr) => {
+      // const x = browser.runtime.getURL("src/background.html")
       if (curr.url === browser.runtime.getURL("src/background.html")) {
+        // logger.info({ backgrounUrl: x, currentUrl: curr.url }, "this tab belongs to a firefox extension, so leaving it out")
         return acc
       }
       return { ...acc, [curr.id]: curr }
     }, {})
+
+    return lTabs
   }, {
     initialValue: {},
   })
 
   browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     mutate(produce(t => {
+      if (tab.url === browser.runtime.getURL("src/background.html")) {
+        return
+      }
       t[tabId] = tab
     }))
   })
@@ -74,10 +90,17 @@ function App() {
     }
   }, "")
 
-  const matchedTabs = createMemo(() => fuzzyFindTabs(Object.values(tabsMap()), query()));
+  const matchedTabs = createMemo(() => {
+    return fuzzyFindTabs(Object.values(tabsMap()), query())
+  });
+
+  // const getMatchedTabId = (idx) => matchedTabs()[idx]?.item?.id
+  // const getMatchedMatches = (idx) => matchedTabs()[idx]?.matches
+
+  const [selectAllFilter, setSelectAllFilter] = createSignal(false)
 
   function onKeyDown(event) {
-    const activeTabId = matchedTabs()[activeMatch()]
+    const activeTabId = matchedTabs().list[activeMatch()]
 
     if (event.key == "ArrowRight" && tabsMap()[activeTabId]?.url?.includes("spotify.com")) {
       (async () => {
@@ -113,7 +136,7 @@ function App() {
     if (event.ctrlKey && event.key === "p") {
       event.preventDefault();
       console.log("this tab should be toggled pin/unpin")
-      const tabId = matchedTabs()[activeMatch()];
+      const tabId = matchedTabs().list[activeMatch()]
       if (tabId) {
         (async () => {
           await browserApi.togglePin(tabId);
@@ -131,7 +154,7 @@ function App() {
     if (event.ctrlKey && event.key === "m") {
       event.preventDefault();
       console.log("this tab should be toggled muted/unmute")
-      const tabId = matchedTabs()[activeMatch()];
+      const tabId = matchedTabs().list[activeMatch()]
       if (tabId) {
         (async () => {
           await browserApi.toggleMute(tabId);
@@ -142,11 +165,27 @@ function App() {
 
     if (event.ctrlKey && event.key === "d") {
       event.preventDefault();
-      const tabId = matchedTabs()[activeMatch()];
+
+      if (selectAllFilter()) {
+        const p = matchedTabs().list.map(async tabId => browserApi.closeTab(tabId));
+
+        (async () => await Promise.all(p))()
+        setSelectAllFilter(false)
+        return
+      }
+
+      const tabId = matchedTabs().list[activeMatch()]
       if (tabId) {
         (async () => {
           await browserApi.closeTab(tabId);
         })()
+      }
+    }
+
+    if (event.ctrlKey && event.key == "x") {
+      // it means operate on all the matches
+      if (!selectAllFilter()) {
+        setSelectAllFilter(true)
       }
     }
   }
@@ -157,7 +196,7 @@ function App() {
         <div class="flex flex-col gap-2">
           <form onSubmit={async (e) => {
             e.preventDefault();
-            const tabId = matchedTabs()[activeMatch()];
+            const tabId = matchedTabs().list[activeMatch()]
             await browser.tabs.update(tabId, { active: true });
             setQuery("")
           }}
@@ -174,20 +213,30 @@ function App() {
             />
           </form>
 
-          <div class="text-medium text-2xl dark:text-gray-200">Tabs ({Object.keys(matchedTabs() || {}).length}/{Object.keys(tabsMap()).length})</div>
-          <For each={matchedTabs()}>
-            {(tabId, idx) => (
-              <Tab
-                index={tabsMap()[tabId]?.index}
-                tabInfo={tabsMap()[tabId] || {}}
-                isSelected={activeMatch() === idx()}
-                onClick={() => {
-                  (async () => {
-                    await browser.tabs.update(tabId, { active: true });
-                  })();
-                }}
-              />
-            )}
+          <div class="text-medium text-2xl dark:text-gray-200">Tabs ({Object.keys(matchedTabs().list || {}).length}/{Object.keys(tabsMap()).length})</div>
+
+          {/* <TabManager */}
+          {/*   matchedTabs={matchedTabs()} */}
+          {/*   tabsMap={tabsMap()} */}
+          {/*   activeMatch={activeMatch()} */}
+          {/* /> */}
+
+          <For each={matchedTabs().list}>
+            {(tabId, idx) => {
+              return (
+                <Tab
+                  index={tabsMap()[tabId]?.index}
+                  tabInfo={tabsMap()[tabId] || {}}
+                  isSelected={activeMatch() === idx()}
+                  matches={matchedTabs().data[tabId].matches}
+                  onClick={() => {
+                    (async () => {
+                      await browser.tabs.update(tabId, { active: true });
+                    })();
+                  }}
+                />
+              )
+            }}
           </For>
         </div>
       </div>
