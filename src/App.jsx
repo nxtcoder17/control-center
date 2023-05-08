@@ -74,17 +74,18 @@ function App() {
 
   createEffect(() => {
     // cycles up and down arrow in list
-    if (activeMatch() >= matchedTabs().length) {
+    if (activeMatch() >= matchedTabs().list.length) {
       setActiveMatch(0)
     }
 
     if (activeMatch() < 0) {
-      setActiveMatch(matchedTabs().length - 1)
+      setActiveMatch(matchedTabs().list.length - 1)
     }
   })
 
   // Reset activeMatch everytime, when query changes
   createEffect((prev) => {
+    console.log(`prev: ${prev} query: ${query()}`)
     if (prev !== query()) {
       setActiveMatch(0)
     }
@@ -191,7 +192,7 @@ function App() {
   }
 
   return (
-    <div class="h-screen w-screen overflow-none py-4 px-4 dark:bg-slate-800" onKeyDown={onKeyDown}>
+    <div class="h-screen w-screen overflow-x-none py-4 px-4 dark:bg-slate-800" onKeyDown={onKeyDown}>
       <div class="h-full w-full overflow-auto">
         <div class="flex flex-col gap-2">
           <form onSubmit={async (e) => {

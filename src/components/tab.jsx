@@ -20,27 +20,35 @@ export const Tab = (props) => {
 
 
   return <div
-    class={cn("tracking-wide text-gray-700  px-2 py-0.5 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer transition-all flex flex-row justify-between", {
+    class={cn("tracking-wide text-gray-700 w-full  px-2 py-0.5 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer transition-all flex flex-row", {
       "bg-slate-200 dark:bg-slate-900 dark:text-slate-300": props.isSelected,
       "bg-slate-50 dark:bg-slate-700 dark:text-slate-400": !props.isSelected,
     })}
     ref={ref}
     onClick={() => props.onClick()}>
-    <div class="flex-1 flex flex-row items-center gap-2">
+    <div class="flex-1 flex flex-row items-center gap-2 overflow-x-none">
       {/* {props.index != -1 && <span class="text-lg">{props.index}</span>} */}
-      <span class="text-lg">{props.index}</span>
-      <div class="h-5 w-5">
-        <img src={props.tabInfo.favIconUrl} />
+      <div class='flex flex-row gap-2 items-center justify-end'>
+        <span class="text-lg w-6 text-right">{props.index}</span>
+        <div class="h-5 w-5">
+          <img src={props.tabInfo.favIconUrl} />
+        </div>
       </div>
-      <div class='flex-1 flex justify-between px-2'>
-        <span class="text-lg w-2/4">{props.tabInfo.title}</span>
-        <span class="text-lg dark:text-gray-500">{props.tabInfo.url.split('?')[0]}</span>
+      {/* <div class='flex-1 flex px-2 justify-between'> */}
+      <div class='flex-1 flex px-2 text-lg overflow-x-none'>
+        <div class='flex-1 truncate overflow-hidden break-all'>
+          {props.tabInfo.title}
+        </div>
+
+        <div class='flex-1 truncate overflow-hidden break-all text-end'>
+          {props.tabInfo.url}
+        </div>
       </div>
     </div>
 
     <div class="flex flex-row gap-2 items-center">
       <span class="text-sm">{props.tabInfo.pinned ? <TbPinned class="w-5 h-5" /> : <div class='w-5 h-5' />}</span>
-      <span class="text-sm">{props.tabInfo.mutedInfo?.muted ? < TbVolumeOff size="20" /> : ""}</span>
+      <span class="text-sm">{props.tabInfo.mutedInfo?.muted ? < TbVolumeOff class="w-5 h-5" /> : <div class='w-5 h-5' />}</span>
     </div>
   </div>
 }
