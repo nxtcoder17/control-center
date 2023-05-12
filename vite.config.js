@@ -57,6 +57,7 @@ export default defineConfig({
   build: {
     target: 'esnext',
     rollupOptions: {
+      treeshake: true,
       input: 'src/background.html',
       plugins: [
         copyStaticFiles([

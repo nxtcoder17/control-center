@@ -5,7 +5,11 @@ import { browserApi } from "./webext-apis/browser-api";
 import Fuse from 'fuse.js';
 import { spotifyWebControls } from "./webext-apis/spotify-controls";
 import { Tab } from "./components/tab";
-// import { logger } from "./pkg/logger";
+import { Page } from './components/page';
+
+import { Checkbox } from 'solid-blocks';
+// import { Checkbox, CheckboxLabel, CheckboxInput, CheckboxControl } from '@ark-ui/solid';
+
 
 function fuzzyFindTabs(tabs, query) {
   const sortPredicate = (a, b) => a.index - b.index;
@@ -84,19 +88,17 @@ function App() {
   })
 
   // Reset activeMatch everytime, when query changes
-  createEffect((prev) => {
-    console.log(`prev: ${prev} query: ${query()}`)
-    if (prev !== query()) {
+  createEffect((prev = "") => {
+    const currQuery = query()
+    if (prev !== currQuery) {
       setActiveMatch(0)
     }
-  }, "")
+    return currQuery
+  })
 
   const matchedTabs = createMemo(() => {
     return fuzzyFindTabs(Object.values(tabsMap()), query())
   });
-
-  // const getMatchedTabId = (idx) => matchedTabs()[idx]?.item?.id
-  // const getMatchedMatches = (idx) => matchedTabs()[idx]?.matches
 
   const [selectAllFilter, setSelectAllFilter] = createSignal(false)
 
@@ -185,64 +187,63 @@ function App() {
 
     if (event.ctrlKey && event.key == "x") {
       // it means operate on all the matches
-      if (!selectAllFilter()) {
-        setSelectAllFilter(true)
-      }
+      setSelectAllFilter(curr => !curr)
     }
   }
 
-  return (
-    <div class="h-screen w-screen overflow-x-none py-4 px-4 dark:bg-slate-800" onKeyDown={onKeyDown}>
-      <div class="h-full w-full overflow-auto">
-        <div class="flex flex-col gap-2">
-          <form onSubmit={async (e) => {
-            e.preventDefault();
-            const tabId = matchedTabs().list[activeMatch()]
-            await browser.tabs.update(tabId, { active: true });
-            setQuery("")
+  return <Page.Root>
+    <div class="px-12 py-4 flex-1 flex flex-col gap-3 dark:bg-slate-800" onKeyDown={onKeyDown}>
+      <form onSubmit={async (e) => {
+        e.preventDefault();
+        const tabId = matchedTabs().list[activeMatch()]
+        await browser.tabs.update(tabId, { active: true });
+        setQuery("")
+      }}
+        class="flex flex-row gap-2"
+      >
+        <input
+          type="text"
+          autoFocus
+          placeholder="Search Your Tabs"
+          value={query()}
+          class="bg-slate-100 dark:bg-slate-900 dark:text-blue-50 w-full px-4 py-2 text-lg leading-4 tracking-wider focus:outline-none sticky flex-1"
+          onInput={(e) => {
+            setQuery(e.target.value);
           }}
-          >
-            <input
-              type="text"
-              autoFocus
-              placeholder="Search Your Tabs"
-              value={query()}
-              class="bg-slate-100 dark:bg-slate-900 dark:text-blue-50 w-full px-4 py-2 text-lg leading-4 tracking-wider focus:outline-none sticky"
-              onInput={(e) => {
-                setQuery(e.target.value);
-              }}
-            />
-          </form>
+        />
 
-          <div class="text-medium text-2xl dark:text-gray-200">Tabs ({Object.keys(matchedTabs().list || {}).length}/{Object.keys(tabsMap()).length})</div>
-
-          {/* <TabManager */}
-          {/*   matchedTabs={matchedTabs()} */}
-          {/*   tabsMap={tabsMap()} */}
-          {/*   activeMatch={activeMatch()} */}
-          {/* /> */}
-
-          <For each={matchedTabs().list}>
-            {(tabId, idx) => {
-              return (
-                <Tab
-                  index={tabsMap()[tabId]?.index}
-                  tabInfo={tabsMap()[tabId] || {}}
-                  isSelected={activeMatch() === idx()}
-                  matches={matchedTabs().data[tabId].matches}
-                  onClick={() => {
-                    (async () => {
-                      await browser.tabs.update(tabId, { active: true });
-                    })();
-                  }}
-                />
-              )
-            }}
-          </For>
+        <div class="flex gap-2 items-center">
+          <label for={"group-filter"} class="dark:text-blue-50 ">Group Filter</label>
+          <Checkbox id="group-filter" switch checked={selectAllFilter()} class="w-5 h-5 rounded-sm checked:bg-blue-400 dark:bg-slate-900" />
         </div>
+
+      </form>
+
+      <div class="text-medium text-2xl dark:text-gray-200">Tabs ({Object.keys(matchedTabs().list || {}).length}/{Object.keys(tabsMap()).length})</div>
+
+      <div class="flex flex-col gap-1">
+        <For each={matchedTabs().list}>
+          {(tabId, idx) => {
+            return (
+              <Tab
+                // index={tabsMap()[tabId]?.index}
+                index={idx() + 1}
+                tabInfo={tabsMap()[tabId] || {}}
+                isSelected={activeMatch() === idx()}
+                matches={matchedTabs().data[tabId].matches}
+                onClick={() => {
+                  (async () => {
+                    await browser.tabs.update(tabId, { active: true });
+                  })();
+                }}
+              />
+            )
+          }}
+        </For>
       </div>
+
     </div>
-  );
+  </Page.Root >
 }
 
 export default App;
