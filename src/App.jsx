@@ -8,6 +8,7 @@ import { Tab } from "./components/tab";
 import { Page } from './components/page';
 
 import { Checkbox } from 'solid-blocks';
+import { logger } from './pkg/logger';
 // import { Checkbox, CheckboxLabel, CheckboxInput, CheckboxControl } from '@ark-ui/solid';
 
 
@@ -42,18 +43,22 @@ function fuzzyFindTabs(tabs, query) {
 
 function App() {
   // eslint-disable-next-line solid/reactivity
-  const [tabsMap, { mutate }] = createResource(async () => {
+  const [tabsMap, { mutate, refetch }] = createResource(async () => {
     const t = await browserApi.listAllTabs()
-    const lTabs = t.reduce((acc, curr) => {
-      // const x = browser.runtime.getURL("src/background.html")
+
+    const listOfTabs = t.reduce((acc, curr, idx) => {
       if (curr.url === browser.runtime.getURL("src/background.html")) {
-        // logger.info({ backgrounUrl: x, currentUrl: curr.url }, "this tab belongs to a firefox extension, so leaving it out")
+        logger.debug("this tab belongs to a firefox extension, so leaving it out")
         return acc
       }
+
+      curr.index = idx + 1
+
+      // logger.info({ idx: acc.idx }, "acc index")
       return { ...acc, [curr.id]: curr }
     }, {})
 
-    return lTabs
+    return listOfTabs
   }, {
     initialValue: {},
   })
@@ -71,6 +76,7 @@ function App() {
     mutate(produce(t => {
       delete t[tabId];
     }))
+    refetch()
   })
 
   const [query, setQuery] = createSignal('');
@@ -145,6 +151,7 @@ function App() {
           await browserApi.togglePin(tabId);
         })()
       }
+      setQuery("")
       return
     }
 
@@ -163,6 +170,8 @@ function App() {
           await browserApi.toggleMute(tabId);
         })()
       }
+
+      setQuery("")
       return
     }
 
@@ -183,6 +192,8 @@ function App() {
           await browserApi.closeTab(tabId);
         })()
       }
+
+      setQuery("")
     }
 
     if (event.ctrlKey && event.key == "x") {
@@ -199,14 +210,14 @@ function App() {
         await browser.tabs.update(tabId, { active: true });
         setQuery("")
       }}
-        class="flex flex-row gap-2"
+        class="flex flex-row gap-2 sticky top-0"
       >
         <input
           type="text"
           autoFocus
           placeholder="Search Your Tabs"
           value={query()}
-          class="bg-slate-100 dark:bg-slate-900 dark:text-blue-50 w-full px-4 py-2 text-lg leading-4 tracking-wider focus:outline-none sticky flex-1"
+          class="bg-slate-100 dark:bg-slate-900 dark:text-blue-50 w-full px-4 py-2 text-lg leading-4 tracking-wider focus:outline-none flex-1"
           onInput={(e) => {
             setQuery(e.target.value);
           }}
@@ -221,13 +232,13 @@ function App() {
 
       <div class="text-medium text-2xl dark:text-gray-200">Tabs ({Object.keys(matchedTabs().list || {}).length}/{Object.keys(tabsMap()).length})</div>
 
-      <div class="flex flex-col gap-1">
+      <div class="flex flex-col gap-2">
         <For each={matchedTabs().list}>
           {(tabId, idx) => {
             return (
               <Tab
-                // index={tabsMap()[tabId]?.index}
-                index={idx() + 1}
+                index={tabsMap()[tabId]?.index}
+                // index={idx() + 1}
                 tabInfo={tabsMap()[tabId] || {}}
                 isSelected={activeMatch() === idx()}
                 matches={matchedTabs().data[tabId].matches}
