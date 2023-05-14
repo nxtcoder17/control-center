@@ -210,7 +210,7 @@ function App() {
         await browser.tabs.update(tabId, { active: true });
         setQuery("")
       }}
-        class="flex flex-row gap-2 sticky top-0"
+        class="flex flex-row gap-2"
       >
         <input
           type="text"
