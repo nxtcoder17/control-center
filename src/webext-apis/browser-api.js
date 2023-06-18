@@ -45,3 +45,13 @@ browserApi.toggleMute = async (tabId) => {
 browserApi.closeTab = async (tabId) => {
   return browser.tabs.remove(tabId)
 }
+
+browserApi.localStore = {
+  set: async (key, value) => {
+    return browser.storage.local.set({ [key]: value })
+  },
+  get: async (key) => {
+    const item = await browser.storage.local.get(key)
+    return item[key]
+  }
+}

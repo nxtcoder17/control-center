@@ -42,8 +42,13 @@ const url = browser.runtime.getURL('src/background.html');
       }
     }
 
-    browser.commands.onCommand.addListener(toggleTab)
-    browser.browserAction.onClicked.addListener(toggleTab)
+    // browser.commands.onCommand.addListener(toggleTab)
+    browser.commands.onCommand.addListener((command) => {
+      if (command == "control-center") {
+        toggleTab()
+      }
+    })
+    // browser.browserAction.onClicked.addListener(toggleTab)
   } catch (err) {
     console.error("[err]: ", err)
   }

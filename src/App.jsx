@@ -9,6 +9,7 @@ import { Page } from './components/page';
 
 import { Checkbox } from 'solid-blocks';
 import { logger } from './pkg/logger';
+import { FiSettings } from 'solid-icons/fi'
 // import { Checkbox, CheckboxLabel, CheckboxInput, CheckboxControl } from '@ark-ui/solid';
 
 
@@ -210,7 +211,7 @@ function App() {
         await browser.tabs.update(tabId, { active: true });
         setQuery("")
       }}
-        class="flex flex-row gap-2"
+        class="flex flex-row gap-4"
       >
         <input
           type="text"
@@ -227,6 +228,19 @@ function App() {
           <label for={"group-filter"} class="dark:text-blue-50 ">Group Filter</label>
           <Checkbox id="group-filter" switch checked={selectAllFilter()} class="w-5 h-5 rounded-sm checked:bg-blue-400 dark:bg-slate-900" />
         </div>
+
+        <button class="flex gap-2 items-center dark:text-slate-200 text-blue-200" onClick={() => {
+          (async () => {
+            try {
+              const x = await browser.runtime.openOptionsPage()
+              console.log(x)
+            } catch {
+              console.error(err)
+            }
+          })()
+        }}>
+          <FiSettings class="w-5 h-5" />
+        </button>
 
       </form>
 
