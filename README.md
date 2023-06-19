@@ -14,10 +14,16 @@ What it does ?
 ### Building Locally
 just run `pnpm build:firefox`, and in the `dist` folder, you get your extension, ready to be packaged
 
-### Content scripts
+### Change Extension Toggle Shortcut
+go to url-bar, navigate to `about:addons` >> `Manage Your Extensions` >> `Manage Extension Shortcuts`, and change the shortcut for `control-center` to whatever you want
 
-**Spotify**
-- jump to next song(with <kbd>Right</kbd>), and prev song(with <kbd>Left</kbd>), when spotify is the selected tab
+### Content scripts
+For **Music Controls**
+- **Spotify**: jump to next song(with <kbd>Right</kbd>), and prev song(with <kbd>Left</kbd>), when spotify is the selected tab
+- **Youtube**: jump to next song(with <kbd>Right</kbd>), and prev song(with <kbd>Left</kbd>), when youtube is the selected tab
 
 ### solidjs must read
 https://javascript.plainenglish.io/designing-solidjs-immutability-f1e46fe9f321
+
+### Further Reads:
+- [Hack Keyboard Shortcuts Into Sites](https://blog.karenying.com/posts/hack-keyboard-shortcuts-into-sites-with-a-custom-chrome-extension#0-getting-started)

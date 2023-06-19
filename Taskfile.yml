@@ -5,12 +5,12 @@ tasks:
     cmds:
       # - fwatcher -d "$PWD" -e "pnpm run build" --ext ".jsx"
       # - fwatcher -e "pnpm run build:firefox" --ext ".jsx" --ext ".js" --exclude-dir "dist"
-      - fwatcher --exec "pnpm run build:firefox" --ext ".jsx" --ext ".js" --exclude-dir "dist"
+      - fwatcher --exec "pnpm run dev:firefox" --ext ".jsx" --ext ".js" --exclude-dir "dist"
 
   dev:chrome:
     cmds:
       # - fwatcher -d "$PWD" -e "pnpm run build" --ext ".jsx"
-      - fwatcher -e "pnpm run build:chrome" --ext ".jsx" --ext ".js" --exclude-dir "dist"
+      - fwatcher -e "pnpm run dev:chrome" --ext ".jsx" --ext ".js" --exclude-dir "dist"
 
   build:
     cmds:

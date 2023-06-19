@@ -7,9 +7,8 @@
     "start": "vite",
     "dev": "vite dev",
     "build": "vite build",
-    "build:dev": "vite build --minify false --mode dev",
-    "build:firefox": "vite build --minify false --mode dev",
-    "build:chrome": "vite build --minify false --mode dev",
+    "build:firefox": "vite build",
+    "dev:firefox": "vite build --minify false --mode dev",
     "serve": "vite preview",
     "web-ext": "cd dist && web-ext run --start-url \"about:debugging#/runtime/this-firefox\""
   },
