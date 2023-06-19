@@ -12,9 +12,7 @@ export const OptionsPage = () => {
   })
 
   createEffect(() => {
-    // if (options() && options().theme != theme()) {
     if (options() && options().theme) {
-      console.log("here:", options().theme)
       setTheme(options().theme)
     }
 
@@ -30,7 +28,6 @@ export const OptionsPage = () => {
     console.log("HELLO WORLD", options());
 
     (async () => {
-      console.log("before saving: ", { theme: theme(), keyboardShortcut: keyboardShortcut() })
       await browserApi.localStore.set("options", { theme: theme(), keyboardShortcut: keyboardShortcut() })
     })()
   }}>
@@ -39,7 +36,6 @@ export const OptionsPage = () => {
       <select id="theme-picker"
         class="bg-gray-200 rounded-md checked:bg-green-500 border-none relative"
         onChange={e => {
-          console.log("e.target.value", e.target.value)
           setTheme(e.target.value)
         }}
       >

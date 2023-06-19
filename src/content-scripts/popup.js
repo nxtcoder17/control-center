@@ -1,5 +1,3 @@
-console.log("hello world")
-
 let input = document.querySelector("input");
 
 input.addEventListener("change", (e) => {

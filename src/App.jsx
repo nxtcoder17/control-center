@@ -12,6 +12,7 @@ import { logger } from './pkg/logger';
 import { FiSettings } from 'solid-icons/fi'
 // import { Checkbox, CheckboxLabel, CheckboxInput, CheckboxControl } from '@ark-ui/solid';
 
+const DISABLE_SETTINGS_ICON = true
 
 function fuzzyFindTabs(tabs, query) {
   const sortPredicate = (a, b) => a.index - b.index;
@@ -229,7 +230,7 @@ function App() {
           <Checkbox id="group-filter" switch checked={selectAllFilter()} class="w-5 h-5 rounded-sm checked:bg-blue-400 dark:bg-slate-900" />
         </div>
 
-        <button class="flex gap-2 items-center dark:text-slate-200 text-blue-200" onClick={() => {
+        {DISABLE_SETTINGS_ICON || <button class="flex gap-2 items-center dark:text-slate-200 text-blue-200" onClick={() => {
           (async () => {
             try {
               const x = await browser.runtime.openOptionsPage()
@@ -240,7 +241,8 @@ function App() {
           })()
         }}>
           <FiSettings class="w-5 h-5" />
-        </button>
+        </button>}
+
 
       </form>
 
