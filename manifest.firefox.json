@@ -13,6 +13,10 @@
     {
       "matches": ["*://open.spotify.com/*"],
       "js": ["src/content-scripts/spotify.js"]
+    },
+    {
+      "matches": ["*://music.youtube.com/*"],
+      "js": ["src/content-scripts/youtube-music.js"]
     }
   ],
 

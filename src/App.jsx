@@ -2,8 +2,9 @@ import { produce } from "immer";
 import { createSignal, createMemo, createEffect, createResource, For } from "solid-js";
 
 import { browserApi } from "./webext-apis/browser-api";
+import { musicControls } from "./webext-apis/music-controls";
+
 import Fuse from 'fuse.js';
-import { spotifyWebControls } from "./webext-apis/spotify-controls";
 import { Tab } from "./components/tab";
 import { Page } from './components/page';
 
@@ -110,112 +111,131 @@ function App() {
 
   const [selectAllFilter, setSelectAllFilter] = createSignal(false)
 
+  async function checkMusicEvents(activeTabId, event) {
+    const activeUrl = tabsMap()[activeTabId]?.url || ""
+    switch (event.keyCode) {
+      case 39: // right Arrow
+        if (activeUrl.includes("spotify.com") || activeUrl.includes("music.youtube.com")) {
+          return musicControls.nextSong(activeTabId)
+        }
+      case 37: // left Arrow
+        if (activeUrl.includes("spotify.com") || activeUrl.includes("music.youtube.com")) {
+          return musicControls.prevSong(activeTabId)
+        }
+      case 32: // space
+        if (activeUrl.includes("spotify.com") || activeUrl.includes("music.youtube.com")) {
+          console.log("PAUSE SONG")
+          return musicControls.pauseSong(activeTabId)
+        }
+    }
+
+    return false
+  }
+
   function onKeyDown(event) {
-    const activeTabId = matchedTabs().list[activeMatch()]
+    (async () => {
+      const activeTabId = matchedTabs().list[activeMatch()]
 
-    if (event.key == "ArrowRight" && tabsMap()[activeTabId]?.url?.includes("spotify.com")) {
-      (async () => {
-        await spotifyWebControls.nextSong(activeTabId)
-      })()
-      return
-    }
+      const musicEvent = await checkMusicEvents(activeTabId, event)
 
-    if (event.key == "ArrowLeft" && tabsMap()[activeTabId].url?.includes("spotify.com")) {
-      (async () => {
-        await spotifyWebControls.prevSong(activeTabId)
-      })()
-      return
-    }
-
-    if ((event.keyCode === 32 || event.which === 32) && tabsMap()[activeTabId].url?.includes("spotify.com")) {
-      (async () => {
-        await spotifyWebControls.pauseSong(activeTabId)
-      })()
-      return
-    }
-
-    if (event.key === "ArrowDown") {
-      setActiveMatch((am) => am + 1);
-      return
-    }
-
-    if (event.key === "ArrowUp") {
-      setActiveMatch((am) => am - 1);
-      return
-    }
-
-    if (event.ctrlKey && event.key === "p") {
-      event.preventDefault();
-      console.log("this tab should be toggled pin/unpin")
-      const tabId = matchedTabs().list[activeMatch()]
-      if (tabId) {
-        (async () => {
-          await browserApi.togglePin(tabId);
-        })()
-      }
-      setQuery("")
-      return
-    }
-
-    if (event.ctrlKey && event.key === "f") {
-      event.preventDefault()
-      return
-    }
-
-
-    if (event.ctrlKey && event.key === "m") {
-      event.preventDefault();
-      console.log("this tab should be toggled muted/unmute")
-      const tabId = matchedTabs().list[activeMatch()]
-      if (tabId) {
-        (async () => {
-          await browserApi.toggleMute(tabId);
-        })()
-      }
-
-      setQuery("")
-      return
-    }
-
-    if (event.ctrlKey && event.key === "d") {
-      event.preventDefault();
-
-      if (selectAllFilter()) {
-        const p = matchedTabs().list.map(async tabId => browserApi.closeTab(tabId));
-
-        (async () => await Promise.all(p))()
-        setSelectAllFilter(false)
+      if (musicEvent) {
+        console.log("music event:", musicEvent)
         return
       }
 
-      const tabId = matchedTabs().list[activeMatch()]
-      if (tabId) {
-        (async () => {
-          await browserApi.closeTab(tabId);
-        })()
+      if (event.key === "ArrowDown") {
+        setActiveMatch((am) => am + 1);
+        return
       }
 
-      setQuery("")
-    }
+      if (event.key === "ArrowUp") {
+        setActiveMatch((am) => am - 1);
+        return
+      }
 
-    if (event.ctrlKey && event.key == "x") {
-      // it means operate on all the matches
-      setSelectAllFilter(curr => !curr)
-    }
+      if (event.ctrlKey && event.key === "p") {
+        event.preventDefault();
+        console.log("this tab should be toggled pin/unpin")
+        const tabId = matchedTabs().list[activeMatch()]
+        if (tabId) {
+          (async () => {
+            await browserApi.togglePin(tabId);
+          })()
+        }
+        setQuery("")
+        return
+      }
+
+      if (event.ctrlKey && event.key === "f") {
+        event.preventDefault()
+        return
+      }
+
+
+      if (event.ctrlKey && event.key === "m") {
+        event.preventDefault();
+        console.log("this tab should be toggled muted/unmute")
+        const tabId = matchedTabs().list[activeMatch()]
+        if (tabId) {
+          (async () => {
+            await browserApi.toggleMute(tabId);
+          })()
+        }
+
+        setQuery("")
+        return
+      }
+
+      if (event.ctrlKey && event.key === "d") {
+        event.preventDefault();
+
+        if (selectAllFilter()) {
+          const p = matchedTabs().list.map(async tabId => browserApi.closeTab(tabId));
+
+          (async () => await Promise.all(p))()
+          setSelectAllFilter(false)
+          return
+        }
+
+        const tabId = matchedTabs().list[activeMatch()]
+        if (tabId) {
+          (async () => {
+            await browserApi.closeTab(tabId);
+          })()
+        }
+
+        setQuery("")
+      }
+
+      if (event.ctrlKey && event.key == "x") {
+        // it means operate on all the matches
+        setSelectAllFilter(curr => !curr)
+      }
+    })()
   }
+
+  let inputRef;
+  setInterval(() => {
+    // INFO: this is a hack to make sure that the input is always focused
+    if (inputRef && inputRef.current != document.activeElement) {
+      inputRef.focus()
+    }
+  })
 
   return <Page.Root>
     <div class="px-12 py-4 flex-1 flex flex-col gap-3 dark:bg-slate-800" onKeyDown={onKeyDown}>
-      <form onSubmit={async (e) => {
-        e.preventDefault();
-        const tabId = matchedTabs().list[activeMatch()]
-        await browser.tabs.update(tabId, { active: true });
-        setQuery("")
-      }}
-        class="flex flex-row gap-4"
+      <form
+        onSubmit={async (e) => {
+          e.preventDefault();
+          const tabId = matchedTabs().list[activeMatch()]
+          await browser.tabs.update(tabId, { active: true });
+          setQuery("")
+        }}
+        class="flex flex-row gap-4 sticky top-2"
       >
         <input
           type="text"
+          ref={inputRef}
           autoFocus
           placeholder="Search Your Tabs"
           value={query()}
@@ -255,6 +275,7 @@ function App() {
               <Tab
                 index={tabsMap()[tabId]?.index}
                 // index={idx() + 1}
+                // inputRef={inputRef}
                 tabInfo={tabsMap()[tabId] || {}}
                 isSelected={activeMatch() === idx()}
                 matches={matchedTabs().data[tabId].matches}
