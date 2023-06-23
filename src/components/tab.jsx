@@ -20,6 +20,7 @@ export const Tab = (props) => {
     ref={ref}
     onClick={() => props.onClick()}>
     <div class="flex flex-row gap-3 items-center">
+      {props.bookmark && <div class="text-xl font-bold bg-gray-900 text-blue-100 px-2">k</div>}
       <div class="flex-initial w-5 truncate text-right text-lg">{props.index}</div>
       <div class="w-5 h-5 flex items-center justify-center">
         <img src={props.tabInfo.favIconUrl} />
