@@ -11,39 +11,75 @@ import { Page } from './components/page';
 import { Checkbox } from 'solid-blocks';
 import { logger } from './pkg/logger';
 import { FiSettings } from 'solid-icons/fi'
+import { PowerlineIcon } from "./components/icons";
 
 const DISABLE_SETTINGS_ICON = true
-
-const PowerlineIcon = (props) => {
-  return (
-    <svg
-      fill="currentColor"
-      preserveAspectRatio="none"
-      class={props.class}
-      stroke-width="0"
-      xmlns="http://www.w3.org/2000/svg"
-      style={{ "overflow": "visible" }}
-      viewBox="300 159.97 424 704.05"
-    >
-      <path d="M715.8 493.5 335 165.1c-14.2-12.2-35-1.2-35 18.5v656.8c0 19.7 20.8 30.7 35 18.5l380.8-328.4c10.9-9.4 10.9-27.6 0-37z" />
-    </svg>
-  )
-}
-
 
 function fuzzyFindTabs(tabs, query) {
   const sortPredicate = (a, b) => a.index - b.index;
 
+  // const data = Object.assign({}, tabs.data)
+  const data = JSON.parse(JSON.stringify(tabs.data));
+
   if (query === "") {
+    return tabs
+    // return {
+    //   list: tabs.list.sort(sortPredicate).map(item => item.id),
+    //   data: tabs.data,
+    //   // data: tabs.reduce((acc, curr) => {
+    //   //   return { ...acc, [curr.id]: curr }
+    //   // }, {})
+    // }
+  }
+
+  if (query.startsWith("`")) {
+    Object.entries(tabs.extraData).forEach(([key, value]) => {
+      logger.info({ dt: typeof data, key, value })
+      data[key].cc_extras = { ...value, bookmark: '`' + value.bookmark }
+      // { "__extraData": value }
+    })
+
+    const bookmarkedTabs = Object.keys(tabs.extraData).filter(i => tabs.extraData[i].bookmark).map(item => {
+      return {
+        ...tabs.data[item],
+        cc_extras: { ...tabs.extraData[item] }
+      }
+    })
+
+    const qt = query.slice(1).toUpperCase()
+    if (qt == "") {
+      return {
+        list: bookmarkedTabs.map(item => item.id),
+        data: bookmarkedTabs.reduce((acc, curr) => {
+          return { ...acc, [curr.id]: curr }
+        }, {})
+      }
+    }
+
+    const f = new Fuse(bookmarkedTabs || [], {
+      // const f = new Fuse(Object.values(data) || [], {
+      // keys: ['cc_extras.bookmark', 'index', 'title', 'url'],
+      keys: ['cc_extras.bookmark'],
+      includeScore: false,
+      includeMatches: true,
+      useExtendedSearch: true,
+      minMatchCharLength: 0,
+    });
+
+
+    const results = f.search(query.slice(1).toUpperCase())
+
+    logger.info({ results })
+
     return {
-      list: tabs.sort(sortPredicate).map(item => item.id),
-      data: tabs.reduce((acc, curr) => {
-        return { ...acc, [curr.id]: curr }
+      list: results?.sort(sortPredicate).map(result => result.item.id),
+      data: results?.reduce((acc, curr) => {
+        return { ...acc, [curr.item.id]: curr }
       }, {})
     }
   }
 
-  const f = new Fuse(tabs || [], {
+  const f = new Fuse(Object.values(tabs.data) || [], {
     keys: ['index', 'title', 'url'],
     includeScore: false,
     includeMatches: true,
@@ -61,44 +97,39 @@ function fuzzyFindTabs(tabs, query) {
 }
 
 function App() {
-  // eslint-disable-next-line solid/reactivity
-  const [tabsMap, { mutate, refetch }] = createResource(async () => {
-    const t = await browserApi.listAllTabs()
+  const [listOfTabs, { _mutate, refetch }] = createResource(async () => browserApi.listAllTabs(), { initialValue: [] })
 
-    const listOfTabs = t.reduce((acc, curr, idx) => {
-      if (curr.url === browser.runtime.getURL("src/background.html")) {
-        logger.debug("this tab belongs to a firefox extension, so leaving it out")
-        return acc
-      }
-
+  const [tabs, setTabs] = createSignal({ list: [], data: {}, extraData: {} })
+  createEffect(() => {
+    const t = listOfTabs()
+    const _tabs = t.reduce((acc, curr, idx) => {
       curr.index = idx + 1
-
-      curr.ccExtras = {}
-
-      // logger.info({ idx: acc.idx }, "acc index")
-      return { ...acc, [curr.id]: curr }
-    }, {})
-
-    return listOfTabs
-  }, {
-    initialValue: {},
-  })
-
-  browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-    mutate(produce(t => {
-      if (tab.url === browser.runtime.getURL("src/background.html")) {
-        return
+      return {
+        list: [...acc.list, curr.id],
+        data: {
+          ...acc.data, [curr.id]: { ...curr }
+        },
       }
-      t[tabId] = tab
-    }))
+    }, { list: [], data: {} })
+
+    setTabs(prev => {
+      return {
+        list: _tabs.list,
+        data: _tabs.data || {},
+        extraData: prev.extraData || {},
+      }
+    })
   })
 
-  browser.tabs.onRemoved.addListener((tabId, _removeInfo) => {
-    mutate(produce(t => {
-      delete t[tabId];
-    }))
-    refetch()
-  })
+  browser.tabs.onUpdated.addListener(() => { refetch() })
+
+  // browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  //   refetch()
+  // })
+  //
+  // browser.tabs.onRemoved.addListener((tabId, _removeInfo) => {
+  //   refetch()
+  // })
 
   const [query, setQuery] = createSignal('');
   const [actionCommand, setActionCommand] = createSignal('')
@@ -125,31 +156,46 @@ function App() {
     return currQuery
   })
 
-  const matchedTabs = createMemo(() => {
-    return fuzzyFindTabs(Object.values(tabsMap()), query())
-  });
+  const bookMarksMap = () => Object.keys(tabs().extraData).reduce((acc, tabId) => {
+    return { ...acc, [tabs().extraData[tabId].bookmark]: tabId }
+  }, {})
 
-  // const [selectAllFilter, setSelectAllFilter] = createSignal(false)
+  createEffect(() => {
+    if (query().length == 2 && query().startsWith("`")) {
+      (async () => {
+        logger.info({ query: query().slice(1).toUpperCase(), bookMarksMap: bookMarksMap() });
+        await browser.tabs.update(Number(bookMarksMap()[query().slice(1).toUpperCase()]), { active: true });
+        setQuery("")
+      })()
+    }
+  })
+
+  const matchedTabs = createMemo(() => {
+    return fuzzyFindTabs({ list: tabs().list, data: tabs().data, extraData: tabs().extraData, }, query())
+  });
 
   const [actionMode, setActionMode] = createSignal(false)
 
   async function checkMusicEvents(activeTabId, event) {
-    const activeUrl = tabsMap()[activeTabId]?.url || ""
+
+    const activeUrl = tabs().data[activeTabId]?.url || ""
     switch (event.keyCode) {
       case 39: // right Arrow
         if (activeUrl.includes("spotify.com") || activeUrl.includes("music.youtube.com")) {
+          event.preventDefault()
           return musicControls.nextSong(activeTabId)
         }
         break
       case 37: // left Arrow
         if (activeUrl.includes("spotify.com") || activeUrl.includes("music.youtube.com")) {
+          event.preventDefault()
           return musicControls.prevSong(activeTabId)
         }
         break
       case 32: // space
         if (activeUrl.includes("spotify.com") || activeUrl.includes("music.youtube.com")) {
-          console.log("PAUSE SONG")
-          return musicControls.pauseSong(activeTabId)
+          event.preventDefault()
+          return musicControls.playOrPauseSong(activeTabId)
         }
         break
     }
@@ -161,25 +207,19 @@ function App() {
     (async () => {
       const activeTabId = matchedTabs().list[activeMatch()]
 
-      const musicEvent = await checkMusicEvents(activeTabId, event)
-
-      if (musicEvent) {
-        return
-      }
-
       if (event.ctrlKey && event.key === "x") {
         event.preventDefault();
         setActionMode((v) => !v)
         return
       }
 
-      if (event.key === "ArrowDown") {
-        setActiveMatch((am) => am + 1);
+      if (event.key === "ArrowUp") {
+        setActiveMatch((am) => am - 1);
         return
       }
 
-      if (event.key === "ArrowUp") {
-        setActiveMatch((am) => am - 1);
+      if (event.key === "ArrowDown") {
+        setActiveMatch((am) => am + 1);
         return
       }
 
@@ -198,7 +238,6 @@ function App() {
         event.preventDefault()
         return
       }
-
 
       if (event.ctrlKey && event.key === "m") {
         event.preventDefault();
@@ -229,14 +268,31 @@ function App() {
 
         setQuery("")
       }
+
+      if (actionMode()) {
+        if (event.keyCode == 27 /* escape key */) {
+          setActionMode(false)
+          return
+        }
+
+        const musicEvent = await checkMusicEvents(activeTabId, event)
+
+        if (musicEvent) {
+          return
+        }
+      }
     })()
   }
 
   createEffect(() => {
     if (actionCommand().startsWith("m") && actionCommand().length == 2) {
       const tabId = matchedTabs().list[activeMatch()]
-      mutate(produce(t => {
-        t[tabId].ccExtras.bookMark = actionCommand().charAt(1).toUpperCase()
+      setTabs(produce(t => {
+        if (!(tabId in t.extraData)) {
+          t.extraData[tabId] = {}
+        }
+        t.extraData[tabId].bookmark = actionCommand().charAt(1).toUpperCase()
+        logger.info(`set bookmark for tab (${t.data[tabId].title}): ${t.extraData[tabId].bookmark}`)
       }))
       setActionCommand("")
       setActionMode(false)
@@ -322,18 +378,16 @@ function App() {
 
       </form>
 
-      <div class="text-medium text-2xl dark:text-gray-200">Tabs ({Object.keys(matchedTabs().list || {}).length}/{Object.keys(tabsMap()).length})</div>
+      <div class="text-medium text-2xl dark:text-gray-200">Tabs ({matchedTabs().list.length || 0}/{tabs().list.length})</div>
 
       <div class="flex flex-col gap-2">
         <For each={matchedTabs().list}>
           {(tabId, idx) => {
             return (
               <Tab
-                index={tabsMap()[tabId]?.index}
-                bookmark={tabsMap()[tabId]?.ccExtras?.bookmark}
-                // index={idx() + 1}
-                // inputRef={inputRef}
-                tabInfo={tabsMap()[tabId] || {}}
+                index={tabs().data[tabId]?.index}
+                bookmark={tabs().extraData[tabId]?.bookmark}
+                tabInfo={tabs().data[tabId] || {}}
                 isSelected={activeMatch() === idx()}
                 matches={matchedTabs().data[tabId].matches}
                 onClick={() => {
