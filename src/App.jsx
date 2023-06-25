@@ -97,15 +97,20 @@ function App() {
     const t = listOfTabs();
     (async () => {
       const _tabs = t.reduce((acc, curr, idx) => {
-        curr.index = idx + 1
 
+        if (curr.url == browser.runtime.getURL("src/background.html")) {
+          return acc
+        }
+
+        curr.index = acc.index
         return {
+          index: acc.index + 1,
           list: [...acc.list, curr.id],
           data: {
             ...acc.data, [curr.id]: { ...curr }
           },
         }
-      }, { list: [], data: {}, extraData: {} });
+      }, { list: [], data: {}, index: 1 });
 
 
       setTabs(prev => {
@@ -352,19 +357,10 @@ function App() {
           await browser.tabs.update(tabId, { active: true });
           setQuery("")
         }}
-        class="flex flex-row gap-4 sticky top-2"
+        class="flex flex-row gap-4 sticky top-2 z-50"
       >
         {/* <div class="focus-within:shadow-lg focus-within:ring-1 focus-within:ring-offset-2 focus-within:ring-offset-blue-900 rounded-md w-full bg-slate-100 dark:bg-slate-900 dark:text-blue-50 flex items-center"> */}
-        <div class="focus-within:shadow-lg rounded-md w-full bg-slate-100 dark:bg-slate-900 dark:text-blue-50 flex">
-          {actionMode() &&
-            <div class="text-xl gap-2 pl-2 relative bg-slate-700 rounded-md">
-              <div class="flex items-center text-slate-700">
-                <div class="text-2xl text-slate-500">Action</div>
-                <PowerlineIcon class="h-10 w-6 fill-slate-700 dark:bg-slate-900" />
-              </div>
-            </div>
-          }
-
+        <div class="focus-within:shadow-lg rounded-md w-full bg-slate-100 dark:bg-slate-900 dark:text-blue-50 flex overflow-hidden">
           {!actionMode() && <input
             type="text"
             ref={inputRef}
@@ -373,26 +369,36 @@ function App() {
             class="bg-slate-100 dark:bg-slate-900 dark:text-blue-50 rounded-md w-full px-4 py-2 text-lg leading-4 tracking-wider outline-none focus:outline-none border-none ring-0 focus:ring-0 flex-1 placeholder:font-bold placeholder:text-lg"
             value={query()}
             onInput={(e) => {
-              setQuery(e.target.value);
+              setQuery(e.target.value)
             }}
           />
           }
 
-          {actionMode() && <input
-            type="text"
-            ref={inputRef}
-            autoFocus
-            placeholder={"Trigger Your Tab Actions"}
-            class="bg-slate-100 dark:bg-slate-900 dark:text-blue-50 rounded-md w-full px-4 py-2 text-lg leading-4 tracking-wider outline-none focus:outline-none border-none ring-0 focus:ring-0 flex-1 placeholder:font-bold placeholder:text-lg"
-            value={actionCommand()}
-            onInput={(e) => {
-              setActionCommand(e.target.value);
-            }}
-          />}
+          {actionMode() && <>
+            {/* <div class="flex items-center gap-2 px-4 relative bg-slate-700 rounded-tr-full rounded-br-full"> */}
+            <div class="relative flex">
+              <div class="bg-slate-700 px-4 flex items-center">
+                <div class="text-lg text-slate-500 font-bold scale-110 tracking-wide">Action</div>
+              </div>
+              <PowerlineIcon class="absolute w-6 fill-slate-700 dark:bg-slate-900 top-0 -right-2.5" />
+            </div>
+
+            <input
+              type="text"
+              ref={inputRef}
+              autoFocus
+              placeholder={"Trigger Your Tab Actions"}
+              class="bg-slate-100 dark:bg-slate-900 dark:text-blue-50 rounded-md w-full px-4 py-2 text-lg leading-4 tracking-wider outline-none focus:outline-none border-none ring-0 focus:ring-0 flex-1 placeholder:font-bold placeholder:text-lg"
+              value={actionCommand()}
+              onInput={(e) => {
+                setActionCommand(e.target.value)
+              }}
+            />
+          </>}
 
         </div>
 
-        <div class="flex gap-2 items-center bg-slate-900 px-2">
+        <div class="flex gap-2 items-center bg-slate-900 px-2 rounded-md">
           <label for={"action-mode"} class="dark:text-slate-400 tracking-tight">Action Mode</label>
           <Checkbox id="action-mode" switch checked={actionMode()} class="w-5 h-5 rounded-sm checked:bg-blue-400 dark:bg-slate-900" />
         </div>
@@ -420,8 +426,6 @@ function App() {
           {(tabId, idx) => {
             const url = matchedTabs()?.data[tabId]?.url
             const vimMarkObj = vimMarks().tabToMarks[tabId]
-
-            console.log("vimMarkObj", vimMarkObj)
 
             return (
               <Tab
