@@ -33,33 +33,26 @@ function fuzzyFindTabs(tabs, query) {
   }
 
   if (query.startsWith("`")) {
-    Object.entries(tabs.extraData).forEach(([key, value]) => {
-      logger.info({ dt: typeof data, key, value })
-      data[key].cc_extras = { ...value, bookmark: '`' + value.bookmark }
-      // { "__extraData": value }
-    })
-
-    const bookmarkedTabs = Object.keys(tabs.extraData).filter(i => tabs.extraData[i].bookmark).map(item => {
+    const bTabs = Object.keys(tabs.tabToMarks).filter(i => i in data && data[i].url == tabs.tabToMarks[i].url).map(tabId => {
       return {
-        ...tabs.data[item],
-        cc_extras: { ...tabs.extraData[item] }
+        ...tabs.data[tabId],
+        cc_extras: { ...tabs.tabToMarks[tabId], mark: '`' + tabs.tabToMarks[tabId].mark },
       }
     })
 
     const qt = query.slice(1).toUpperCase()
     if (qt == "") {
       return {
-        list: bookmarkedTabs.map(item => item.id),
-        data: bookmarkedTabs.reduce((acc, curr) => {
+        list: bTabs.sort(sortPredicate).map(tab => tab.id),
+        data: bTabs.reduce((acc, curr) => {
           return { ...acc, [curr.id]: curr }
         }, {})
       }
     }
 
-    const f = new Fuse(bookmarkedTabs || [], {
-      // const f = new Fuse(Object.values(data) || [], {
+    const f = new Fuse(bTabs || [], {
       // keys: ['cc_extras.bookmark', 'index', 'title', 'url'],
-      keys: ['cc_extras.bookmark'],
+      keys: ['cc_extras.mark'],
       includeScore: false,
       includeMatches: true,
       useExtendedSearch: true,
@@ -99,36 +92,52 @@ function fuzzyFindTabs(tabs, query) {
 function App() {
   const [listOfTabs, { _mutate, refetch }] = createResource(async () => browserApi.listAllTabs(), { initialValue: [] })
 
-  const [tabs, setTabs] = createSignal({ list: [], data: {}, extraData: {} })
+  const [tabs, setTabs] = createSignal({ list: [], data: {} })
   createEffect(() => {
-    const t = listOfTabs()
-    const _tabs = t.reduce((acc, curr, idx) => {
-      curr.index = idx + 1
-      return {
-        list: [...acc.list, curr.id],
-        data: {
-          ...acc.data, [curr.id]: { ...curr }
-        },
-      }
-    }, { list: [], data: {} })
+    const t = listOfTabs();
+    (async () => {
+      const _tabs = t.reduce((acc, curr, idx) => {
+        curr.index = idx + 1
 
-    setTabs(prev => {
-      return {
-        list: _tabs.list,
-        data: _tabs.data || {},
-        extraData: prev.extraData || {},
-      }
-    })
+        return {
+          list: [...acc.list, curr.id],
+          data: {
+            ...acc.data, [curr.id]: { ...curr }
+          },
+        }
+      }, { list: [], data: {}, extraData: {} });
+
+
+      setTabs(prev => {
+        return {
+          list: _tabs.list,
+          data: _tabs.data || {},
+        }
+      })
+    })()
   })
 
-  browser.tabs.onUpdated.addListener(() => { refetch() })
+  browser.tabs.onUpdated.addListener(() => refetch())
+  browser.tabs.onRemoved.addListener(() => refetch());
 
   // browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  //   refetch()
+  //   setTabs(produce(t => {
+  //     if (tabId in t.data) {
+  //       tab.index = t.list.length + 1
+  //       t.data[tabId] = tab
+  //       t.list.push(tabId)
+  //     }
+  //   }))
   // })
   //
   // browser.tabs.onRemoved.addListener((tabId, _removeInfo) => {
-  //   refetch()
+  //   setTabs(produce(t => {
+  //     if (tabId in t.data) {
+  //       tab.index = t.list.length + 1
+  //       t.data[tabId] = tab
+  //       t.list.push(tabId)
+  //     }
+  //   }))
   // })
 
   const [query, setQuery] = createSignal('');
@@ -156,22 +165,23 @@ function App() {
     return currQuery
   })
 
-  const bookMarksMap = () => Object.keys(tabs().extraData).reduce((acc, tabId) => {
-    return { ...acc, [tabs().extraData[tabId].bookmark]: tabId }
-  }, {})
-
   createEffect(() => {
     if (query().length == 2 && query().startsWith("`")) {
       (async () => {
-        logger.info({ query: query().slice(1).toUpperCase(), bookMarksMap: bookMarksMap() });
-        await browser.tabs.update(Number(bookMarksMap()[query().slice(1).toUpperCase()]), { active: true });
+        const mt = vimMarks().marksToTab
+        logger.info({ query: query().slice(1).toUpperCase(), vimMarks: mt });
+        await browser.tabs.update(Number(mt[query().slice(1).toUpperCase()].tabId), { active: true });
         setQuery("")
       })()
     }
   })
 
+  const [vimMarks, { mutate: setVimMarks, refetch: refetchVimMarks }] = createResource(async () => browserApi.localStore.get("tabs-vim-marks"), { initialValue: { tabToMarks: {}, setVimMarks: {} } })
+
+  // const [vimMarks, setVimMarks] = createSignal({ tabToMarks: {}, marksToTab: {} })
+
   const matchedTabs = createMemo(() => {
-    return fuzzyFindTabs({ list: tabs().list, data: tabs().data, extraData: tabs().extraData, }, query())
+    return fuzzyFindTabs({ list: tabs().list, data: tabs().data, tabToMarks: vimMarks().tabToMarks }, query())
   });
 
   const [actionMode, setActionMode] = createSignal(false)
@@ -287,15 +297,40 @@ function App() {
   createEffect(() => {
     if (actionCommand().startsWith("m") && actionCommand().length == 2) {
       const tabId = matchedTabs().list[activeMatch()]
-      setTabs(produce(t => {
-        if (!(tabId in t.extraData)) {
-          t.extraData[tabId] = {}
+      setVimMarks(produce(m => {
+        if (!m.tabToMarks) {
+          m.tabToMarks = {}
         }
-        t.extraData[tabId].bookmark = actionCommand().charAt(1).toUpperCase()
-        logger.info(`set bookmark for tab (${t.data[tabId].title}): ${t.extraData[tabId].bookmark}`)
+
+        if (!m.marksToTab) {
+          m.marksToTab = {}
+        }
+
+        m.tabToMarks[tabId] = { mark: actionCommand().charAt(1).toUpperCase(), url: tabs().data[tabId].url }
+        m.marksToTab[actionCommand().charAt(1).toUpperCase()] = { tabId: tabId, url: tabs().data[tabId].url }
       }))
+
+      // setTabs(produce(t => {
+      //   if (!(tabId in t.extraData)) {
+      //     t.extraData[tabId] = {}
+      //   }
+      //   t.extraData[tabId].bookmark = actionCommand().charAt(1).toUpperCase()
+      //   logger.info(`set bookmark for tab (${t.data[tabId].title}): ${t.extraData[tabId].bookmark}`)
+      // }))
+
+      console.log("HERE")
+
       setActionCommand("")
+      setQuery("")
       setActionMode(false)
+    }
+  })
+
+  createEffect(() => {
+    if (vimMarks()) {
+      (async () => {
+        await browserApi.localStore.set("tabs-vim-marks", vimMarks())
+      })()
     }
   })
 
@@ -309,7 +344,7 @@ function App() {
 
 
   return <Page.Root>
-    <div class="px-12 py-4 flex-1 flex flex-col gap-3 dark:bg-slate-800" onKeyDown={onKeyDown}>
+    <div class="px-16 py-6 flex-1 flex flex-col gap-3 dark:bg-slate-800" onKeyDown={onKeyDown}>
       <form
         onSubmit={async (e) => {
           e.preventDefault();
@@ -357,8 +392,8 @@ function App() {
 
         </div>
 
-        <div class="flex gap-2 items-center">
-          <label for={"action-mode"} class="dark:text-blue-50 ">Action Mode</label>
+        <div class="flex gap-2 items-center bg-slate-900 px-2">
+          <label for={"action-mode"} class="dark:text-slate-400 tracking-tight">Action Mode</label>
           <Checkbox id="action-mode" switch checked={actionMode()} class="w-5 h-5 rounded-sm checked:bg-blue-400 dark:bg-slate-900" />
         </div>
 
@@ -380,16 +415,21 @@ function App() {
 
       <div class="text-medium text-2xl dark:text-gray-200">Tabs ({matchedTabs().list.length || 0}/{tabs().list.length})</div>
 
-      <div class="flex flex-col gap-2">
+      <div class="flex flex-col gap-2 overflow-visible relative">
         <For each={matchedTabs().list}>
           {(tabId, idx) => {
+            const url = matchedTabs()?.data[tabId]?.url
+            const vimMarkObj = vimMarks().tabToMarks[tabId]
+
+            console.log("vimMarkObj", vimMarkObj)
+
             return (
               <Tab
                 index={tabs().data[tabId]?.index}
-                bookmark={tabs().extraData[tabId]?.bookmark}
+                vimMark={vimMarks().tabToMarks[tabId] && matchedTabs().data[tabId].url?.startsWith(vimMarks().tabToMarks[tabId].url) && vimMarks().tabToMarks[tabId].mark}
                 tabInfo={tabs().data[tabId] || {}}
                 isSelected={activeMatch() === idx()}
-                matches={matchedTabs().data[tabId].matches}
+                matches={matchedTabs()?.data[tabId].matches}
                 onClick={() => {
                   (async () => {
                     await browser.tabs.update(tabId, { active: true });
