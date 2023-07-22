@@ -19,7 +19,7 @@ export const Tab = (props) => {
     }
   })
 
-  return <div class="flex-1 flex flex-row gap-3 tracking-wide text-gray-700 px-2 py-1 dark:hover:bg-slate-900 hover:bg-slate-300 cursor-pointer transition-all items-center overflow-y-auto overflow-x-auto"
+  return <div class="flex-1 flex flex-row gap-3 tracking-wide text-gray-700 px-2 py-1 cursor-pointer transition-all items-center overflow-y-auto overflow-x-auto"
     classList={{
       "bg-slate-300 dark:bg-slate-900 dark:text-slate-300": props.isSelected,
       "bg-slate-100 dark:bg-slate-700 dark:text-slate-400": !props.isSelected,

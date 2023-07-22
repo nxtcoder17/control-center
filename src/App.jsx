@@ -36,7 +36,6 @@ function fuzzyFindTabs(tabs, query) {
 
 
   if (query.startsWith("`")) {
-    // const bTabs = Object.keys(tabs.tabToMarks).filter(i => i in data && data[i].url.startsWith(tabs.tabToMarks[i].url)).map(tabId => {
     const bTabs = Object.keys(tabs.tabToMarks).filter(i => i in data && checkIfValidMark(tabs.tabToMarks[i].prefixUrl, data[i]?.url)).map(tabId => {
       return {
         ...tabs.data[tabId],
@@ -155,7 +154,7 @@ function App() {
   })
 
 
-  const [vimMarks, { mutate: setVimMarks, refetch: refetchVimMarks }] = createResource(async () => {
+  const [vimMarks, { mutate: setVimMarks, refetch: _refetchVimMarks }] = createResource(async () => {
     const marks = await browserApi.localStore.get("tabs-vim-marks")
     logger.debug({ "marks-as-read-from-local-store": marks.marksToTab })
 
@@ -208,7 +207,6 @@ function App() {
   const [groupFilter, setGroupFilter] = createSignal(false)
 
   async function checkMusicEvents(activeTabId, event) {
-
     const activeUrl = tabs().data[activeTabId]?.url || ""
     switch (event.keyCode) {
       case 39: // right Arrow
@@ -409,11 +407,13 @@ function App() {
           e.preventDefault();
           const tabId = matchedTabs().list[activeMatch()]
           await browser.tabs.update(tabId, { active: true });
-          setQuery("")
+          batch(() => {
+            setQuery("")
+            setGroupFilter(false)
+          })
         }}
         class="flex flex-row gap-4 sticky top-2 z-50"
       >
-        {/* <div class="focus-within:shadow-lg focus-within:ring-1 focus-within:ring-offset-2 focus-within:ring-offset-blue-900 rounded-md w-full bg-slate-100 dark:bg-slate-900 dark:text-blue-50 flex items-center"> */}
         <div class="focus-within:shadow-lg rounded-md w-full bg-slate-100 dark:bg-slate-900 dark:text-blue-50 flex overflow-hidden">
           {!actionMode() && <>
             {groupFilter() &&
@@ -439,7 +439,6 @@ function App() {
           }
 
           {actionMode() && <>
-            {/* <div class="flex items-center gap-2 px-4 relative bg-slate-700 rounded-tr-full rounded-br-full"> */}
             <div class="relative flex">
               <div class="bg-slate-700 px-4 flex items-center">
                 <div class="text-lg text-slate-500 font-bold scale-110 tracking-wide">Action</div>
