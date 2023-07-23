@@ -1,5 +1,5 @@
 import { produce } from "immer";
-import { batch, createSignal, createMemo, createEffect, createResource, For, on } from "solid-js";
+import { batch, createSignal, createMemo, createEffect, createResource, For } from "solid-js";
 
 import { browserApi } from "./webext-apis/browser-api";
 import { musicControls } from "./webext-apis/music-controls";
@@ -33,7 +33,6 @@ function fuzzyFindTabs(tabs, query) {
   }
 
   const data = proxyToObject(tabs.data)
-
 
   if (query.startsWith("`")) {
     const bTabs = Object.keys(tabs.tabToMarks).filter(i => i in data && checkIfValidMark(tabs.tabToMarks[i].prefixUrl, data[i]?.url)).map(tabId => {
@@ -93,14 +92,13 @@ function fuzzyFindTabs(tabs, query) {
 }
 
 function App() {
-  const [listOfTabs, { _mutate, refetch }] = createResource(async () => browserApi.listAllTabs(), { initialValue: [] })
+  const [listOfTabs, { _mutate, refetch }] = createResource(() => browserApi.listAllTabs(), { initialValue: [] })
 
   const [tabs, setTabs] = createSignal({ list: [], data: {} })
   createEffect(() => {
     const t = listOfTabs();
     (async () => {
-      const _tabs = t.reduce((acc, curr, idx) => {
-
+      const _tabs = t.reduce((acc, curr) => {
         if (curr.url == browser.runtime.getURL("src/background.html")) {
           return acc
         }
@@ -116,7 +114,7 @@ function App() {
       }, { list: [], data: {}, index: 1 });
 
 
-      setTabs(prev => {
+      setTabs(() => {
         return {
           list: _tabs.list,
           data: _tabs.data || {},
@@ -125,6 +123,9 @@ function App() {
     })()
   })
 
+
+  // register browser tab events
+  browser.tabs.onCreated.addListener(() => refetch())
   browser.tabs.onUpdated.addListener(() => refetch())
   browser.tabs.onRemoved.addListener(() => refetch());
 
@@ -154,6 +155,7 @@ function App() {
   })
 
 
+  // eslint-disable-next-line solid/reactivity
   const [vimMarks, { mutate: setVimMarks, refetch: _refetchVimMarks }] = createResource(async () => {
     const marks = await browserApi.localStore.get("tabs-vim-marks")
     logger.debug({ "marks-as-read-from-local-store": marks.marksToTab })
@@ -171,7 +173,6 @@ function App() {
     await browserApi.localStore.set("tabs-vim-marks", marks)
     return marks
   }, { initialValue: { tabToMarks: {}, marksToTab: {} } })
-
 
 
   function persistVimMarks(marksObj) {
