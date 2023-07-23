@@ -19,6 +19,6 @@ const getSongInfo = async (tabId) => {
 export const musicControls = {
   nextSong,
   prevSong,
-  pauseSong,
+  playOrPauseSong: pauseSong,
   getSongInfo,
 }
