@@ -17,6 +17,10 @@
     {
       "matches": ["*://music.youtube.com/*"],
       "js": ["src/content-scripts/youtube-music.js"]
+    },
+    {
+      "matches": ["*://www.youtube.com/*"],
+      "js": ["src/content-scripts/youtube.com.js"]
     }
   ],
 

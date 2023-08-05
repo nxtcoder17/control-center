@@ -6,6 +6,7 @@ import { browserApi } from '../webext-apis/browser-api'
 export const OptionsPage = () => {
   const [theme, setTheme] = createSignal("light")
   const [keyboardShortcut, setKeyboardShortcut] = createSignal("Ctrl+E")
+  const [blockYoutubeShorts, setBlockYoutubeShorts] = createSignal(false)
 
   const [options] = createResource(async () => {
     return browserApi.localStore.get("options")
@@ -24,11 +25,10 @@ export const OptionsPage = () => {
   const style = {}
 
   return <form class="flex flex-col gap-2 px-4 py-6" onSubmit={e => {
-    e.preventDefault()
-    console.log("HELLO WORLD", options());
+    e.preventDefault();
 
     (async () => {
-      await browserApi.localStore.set("options", { theme: theme(), keyboardShortcut: keyboardShortcut() })
+      await browserApi.localStore.set("options", { theme: theme(), keyboardShortcut: keyboardShortcut(), blockYoutubeShorts: blockYoutubeShorts() })
     })()
   }}>
     <div class="flex gap-2 items-center">
@@ -50,6 +50,19 @@ export const OptionsPage = () => {
         value={keyboardShortcut().trim()}
         onInput={e => setKeyboardShortcut(e.target.value)}
       />
+    </div>
+
+    <div class="flex gap-2 items-center">
+      <label for="block-youtube-shorts" class="w-80">Block Youtube Shorts</label>
+      <select id="theme-picker"
+        class="bg-gray-200 rounded-md checked:bg-green-500 border-none relative"
+        onChange={e => {
+          setBlockYoutubeShorts(e.target.value)
+        }}
+      >
+        <option value={true} selected={blockYoutubeShorts()}>Yes</option>
+        <option value={false} selected={!blockYoutubeShorts()}>No</option>
+      </select>
     </div>
 
     <div class="flex gap-6">

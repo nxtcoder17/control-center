@@ -1,3 +1,5 @@
+import * as browser from "webextension-polyfill";
+
 const url = browser.runtime.getURL('src/background.html');
 
 async function listTabs() {
@@ -68,7 +70,7 @@ async function ensurePreviousTabId(tabId) {
 
     // browser.commands.onCommand.addListener(toggleTab)
     browser.commands.onCommand.addListener((command) => {
-      if (command == "control-center") {
+      if (command === "control-center") {
         toggleTab()
       }
     })

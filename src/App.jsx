@@ -158,13 +158,13 @@ function App() {
   // eslint-disable-next-line solid/reactivity
   const [vimMarks, { mutate: setVimMarks, refetch: _refetchVimMarks }] = createResource(async () => {
     const marks = await browserApi.localStore.get("tabs-vim-marks")
-    logger.debug({ "marks-as-read-from-local-store": marks.marksToTab })
+    logger.debug({ "marks-as-read-from-local-store": marks?.marksToTab })
 
-    marks.marksToTab = Object.entries(marks.marksToTab || {}).filter(([_, { tabId, prefixUrl }]) => checkIfValidMark(prefixUrl, tabs().data[tabId]?.url)).reduce((acc, [mark, { tabId, prefixUrl }]) => {
+    marks.marksToTab = Object.entries(marks?.marksToTab || {}).filter(([_, { tabId, prefixUrl }]) => checkIfValidMark(prefixUrl, tabs().data[tabId]?.url)).reduce((acc, [mark, { tabId, prefixUrl }]) => {
       return { ...acc, [mark]: { tabId, prefixUrl } }
     }, {})
 
-    marks.tabToMarks = Object.entries(marks.marksToTab || {}).reduce((acc, [mark, { tabId, prefixUrl }]) => {
+    marks.tabToMarks = Object.entries(marks?.marksToTab || {}).reduce((acc, [mark, { tabId, prefixUrl }]) => {
       return { ...acc, [tabId]: { mark, prefixUrl } }
     }, {})
 
