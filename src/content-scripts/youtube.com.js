@@ -1,5 +1,3 @@
-import * as browser from "webextension-polyfill";
-
 console.log("[control-center] youtube content script loaded");
 
 const YOUTUBE_SHORTS_SELECTOR = "[is-shorts]"

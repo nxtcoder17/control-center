@@ -12,11 +12,11 @@
   "content_scripts": [
     {
       "matches": ["*://open.spotify.com/*"],
-      "js": ["src/content-scripts/spotify.js"]
+      "js": ["src/content-scripts/spotify.com.js"]
     },
     {
       "matches": ["*://music.youtube.com/*"],
-      "js": ["src/content-scripts/youtube-music.js"]
+      "js": ["src/content-scripts/music.youtube.com.js"]
     },
     {
       "matches": ["*://www.youtube.com/*"],
@@ -25,7 +25,7 @@
   ],
 
   "background": {
-    "scripts": ["src/scripts/background.js"]
+    "scripts": ["src/scripts/background.ts"]
   },
 
   "options_ui": {
