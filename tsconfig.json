@@ -7,8 +7,8 @@
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "jsx": "preserve",
-    "inlineSourceMap": true,
     "jsxImportSource": "solid-js",
+    "inlineSourceMap": true,
     "types": ["vite/client"],
     "noEmit": true,
     "isolatedModules": true,
@@ -20,8 +20,8 @@
     "src/global.d.ts",
   ],
   "include": [
-    "src/**/*",
-    "*.ts",
+    "./src/**/*",
+    "./*.ts",
   ],
   "exclude": [
     "node_modules",
