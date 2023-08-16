@@ -22,3 +22,11 @@ tasks:
         zip -r ../control-center.zip *
         popd
 
+  zip:source:
+    cmds:
+      - |+
+        dir_name=$(basename $PWD)
+        pushd ..
+        zip -r control-center-source.zip $dir_name -x "$dir_name/node_modules/*" -x "$dir_name/dist/*" -x "$dir_name/.git/*" -x "$dir_name/.idea/*"
+        mv ./control-center-source.zip ./$dir_name/control-center-source.zip
+        popd

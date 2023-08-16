@@ -1,5 +1,6 @@
 import { produce } from 'immer'
-import { batch, createSignal, createMemo, createEffect, createResource, For, type Ref } from 'solid-js'
+import { batch, createSignal, createMemo, createEffect, createResource, For } from 'solid-js'
+import { type Ref } from 'solid-js'
 import * as browser from 'webextension-polyfill'
 
 import { browserApi } from './webext-apis/browser-api'
