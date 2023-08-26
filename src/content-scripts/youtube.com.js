@@ -11,6 +11,8 @@ function observeAndAct (action) {
   action()
   const observer = new MutationObserver(action)
 
+  observer.
+
   observer.observe(document.body, {
     subtree: true,
     childList: true,
@@ -34,7 +36,7 @@ observeAndAct(() => {
   blockYoutubeShorts(YOUTUBE_SHORTS_SELECTOR)
 })
 
-function hideImages (selector) {
+function hideImages(selector) {
   const items = document.querySelectorAll(selector)
   if (items.length > 0) {
     console.log('[control-center] found these many images, hiding them', items.length)
@@ -54,28 +56,38 @@ function showImages (selector) {
   }
 }
 
-function observeAndHideThumbnails () {
-  let observer = null
+function observeAndHideThumbnails() {
+  const newObserver = () => new MutationObserver(() => {
+    // console.log('[control-center] hiding images')
+    hideImages(THUMBNAIL_IMAGES_SELECTOR)
+  })
 
-  const observe = () => {
+  let observer = null;
+
+  const start = () => {
     if (observer != null) {
-      observer.disconnect()
+      stop()
     }
-    observer = observeAndAct(() => {
-      console.log('[control-center] hiding images')
-      hideImages(THUMBNAIL_IMAGES_SELECTOR)
+
+    console.log("observe called")
+
+    observer = newObserver()
+    observer.observe(document.body, {
+      subtree: true,
+      childList: true,
     })
   }
 
   const stop = () => {
+    console.log("stop called")
     observer.disconnect()
     observer = null
   }
 
-  return { observe, stop }
+  return { start, stop }
 }
 
-const thumbnailsObserver = observeAndHideThumbnails()
+// const thumbnailsHider = observeAndHideThumbnails()
 
 function addButtonOnYoutubeMastHead (element) {
   const container = document.querySelector('#container #end')
@@ -83,7 +95,6 @@ function addButtonOnYoutubeMastHead (element) {
 }
 
 const box = document.createElement('img')
-// box.innerText = "👁 toggle thumbnails"
 
 const iconHideImage = 'https://i.ibb.co/c30ZCy8/no-image.png'
 const iconShowImage = 'https://i.ibb.co/NrZfWzJ/show-image.png'
@@ -92,23 +103,24 @@ const iconShowImage = 'https://i.ibb.co/NrZfWzJ/show-image.png'
 // box.src="https://img.icons8.com/?size=512&id=circdDLDm1Qi&format=png"
 box.src = iconHideImage
 box.style = 'width: 32px; height: 32px; border-radius: 10%; padding: 2px; cursor: pointer;'
-box.setAttribute(LABEL_SHOW_THUMBNAILS, VALUE_HIDE_THUMBNAILS)
+box.setAttribute(LABEL_SHOW_THUMBNAILS, VALUE_SHOW_THUMBNAILS)
 box.setAttribute('controlled-by', 'control-center')
 box.onclick = () => {
   const val = box.getAttribute(LABEL_SHOW_THUMBNAILS)
   if (val === VALUE_HIDE_THUMBNAILS) {
     box.setAttribute(LABEL_SHOW_THUMBNAILS, VALUE_SHOW_THUMBNAILS)
     box.src = iconShowImage
+    // thumbnailsHider.stop()
     showImages(THUMBNAIL_IMAGES_SELECTOR)
-    thumbnailsObserver.disconnect()
     return
   }
 
   box.setAttribute(LABEL_SHOW_THUMBNAILS, VALUE_HIDE_THUMBNAILS)
   box.src = iconHideImage
   hideImages(THUMBNAIL_IMAGES_SELECTOR)
-  thumbnailsObserver.observe()
+  // thumbnailsHider.start()
 }
+
 addButtonOnYoutubeMastHead(box)
 
-thumbnailsObserver.observe()
+// thumbnailsHider.start()

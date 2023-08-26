@@ -1,7 +1,9 @@
 import { produce } from 'immer'
 import { batch, createSignal, createMemo, createEffect, createResource, For } from 'solid-js'
-import { type Ref } from 'solid-js'
+import { type Ref } from 'solid-js';
 import * as browser from 'webextension-polyfill'
+
+import { type TabsCollection, type TabData, type TabId, type TabMarks } from './types'
 
 import { browserApi } from './webext-apis/browser-api'
 import { musicControls } from './webext-apis/music-controls'
@@ -11,22 +13,23 @@ import { BrowserTab } from './components/browser-tab'
 import { PageRoot } from './components/page'
 
 import { FiSettings } from 'solid-icons/fi'
-import { PowerlineIcon } from './components/icons'
+import { PowerlineIcon } from './components/icons';
+import { fuzzyFind } from './pkg/fuzzy/fuzzy-finder'
 
 const DISABLE_SETTINGS_ICON = true
 
-function proxyToObject (proxy: unknown) {
+function proxyToObject(proxy: unknown) {
   return JSON.parse(JSON.stringify(proxy))
 }
 
-function checkIfValidMark (markUrl: string, tabUrl = '') {
+function checkIfValidMark(markUrl: string, tabUrl = '') {
   if (markUrl && tabUrl) {
     return tabUrl.startsWith(markUrl)
   }
   return false
 }
 
-function fuzzyFindTabs (tabs: TabsCollection, marks: TabMarks, query: string): TabsCollection {
+function fuzzyFindTabs(tabs: TabsCollection, marks: TabMarks, query: string): TabsCollection {
   const sortPredicate = (a: any, b: any) => a.index - b.index
 
   if (query === '') {
@@ -52,7 +55,7 @@ function fuzzyFindTabs (tabs: TabsCollection, marks: TabMarks, query: string): T
           if (curr.id == null) {
             return acc
           }
-          return { ...acc, [curr.id]: curr }
+          // return { ...acc, [curr.id]: curr }
         }, {}),
       }
     }
@@ -99,19 +102,7 @@ function fuzzyFindTabs (tabs: TabsCollection, marks: TabMarks, query: string): T
   }
 }
 
-interface TabMarks {
-  marksToTab: Record<string, { tabId: number, prefixUrl: string }>
-  tabToMarks: Record<number, { mark: string, prefixUrl: string }>
-}
-
-type TabId = number
-type TabData = browser.Tabs.Tab & { index: number }
-interface TabsCollection {
-  list: TabId[]
-  data: Record<number, TabData>
-}
-
-function App () {
+function App() {
   // eslint-disable-next-line solid/reactivity
   const [listOfTabs, { refetch }] = createResource(async () => await browserApi.listAllTabs(), { initialValue: [] })
 
@@ -196,7 +187,7 @@ function App () {
     return marksObj
   }, { initialValue: { tabToMarks: {}, marksToTab: {} } })
 
-  function persistVimMarks (marksObj: TabMarks) {
+  function persistVimMarks(marksObj: TabMarks) {
     void (async () => {
       logger.debug('pre-persist-vim-marks', marksObj)
       await browserApi.localStore.set('tabs-vim-marks', marksObj)
@@ -219,12 +210,21 @@ function App () {
 
   const matchedTabs = createMemo(() => {
     return fuzzyFindTabs(tabs(), vimMarks(), query())
+    // const results = fuzzyFind(Object.values(tabs().data), query())
+    // const rfmt = (results || []).reduce((acc, curr) => {
+    //   return {
+    //     list: [...acc.list, Number(curr.item.id)],
+    //     data: { ...acc.data, [Number(curr.item.id)]: curr.item },
+    //   }
+    // }, { list: [], data: {} })
+    // return rfmt
+    // return fuzzyFindTabs(tabs(), vimMarks(), query())
   })
 
   const [actionMode, setActionMode] = createSignal(false)
   const [groupFilter, setGroupFilter] = createSignal(false)
 
-  async function handleMusicEvent (activeTabId: number, event: KeyboardEvent) {
+  async function handleMusicEvent(activeTabId: number, event: KeyboardEvent) {
     const activeUrl = tabs().data[activeTabId]?.url ?? ''
     switch (event.keyCode) {
       case 39: // right Arrow
@@ -250,9 +250,9 @@ function App () {
     return false
   }
 
-  function onKeyDown (event: KeyboardEvent) {
+  function onKeyDown(event: KeyboardEvent) {
     void (async () => {
-      const activeTabId = matchedTabs().list[activeMatch()]
+      const activeTabId = matchedTabs()?.list[activeMatch()]
 
       if (event.key === 'Tab') {
         event.preventDefault()
