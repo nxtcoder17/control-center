@@ -6,7 +6,7 @@ import fs from 'fs-extra'
 import path from 'path'
 import { type InputPluginOption } from 'rollup'
 
-function copyStaticFiles (options: StaticFileArg[]): InputPluginOption {
+function copyStaticFiles(options: StaticFileArg[]): InputPluginOption {
   return {
     name: 'copy-static-files',
     writeBundle: {

@@ -1,18 +1,18 @@
 import Fuse from 'fuse.js'
 
-function proxyToObject(proxy: unknown) {
-  return JSON.parse(JSON.stringify(proxy))
-}
-
+// function proxyToObject(proxy: unknown) {
+//   return JSON.parse(JSON.stringify(proxy))
+// }
+//
 // interface Result {
 // }
 
 interface Opts {
-  sortPredicate<T>(a: T, b: T): number
-  searchOnKeys: Array<string>
+  sortPredicate?: <T>(a: T, b: T) => number
+  searchOnKeys?: string[]
 }
 
-export function fuzzyFind<T>(list: Array<T>, query: string, opts?: Opts): Array<Fuse.FuseResult<T>> | null {
+export function fuzzyFind<T>(list: T[], query: string, opts?: Opts): Array<Fuse.FuseResult<T>> | null {
   const sortPredicate = opts ? opts.sortPredicate : (a: any, b: any) => a.index - b.index
 
   if (query === '') {
@@ -27,7 +27,6 @@ export function fuzzyFind<T>(list: Array<T>, query: string, opts?: Opts): Array<
   })
 
   const results = f.search<T>(query)
-  console.log(JSON.stringify(results, null, 2))
   return results
 }
 

@@ -5,6 +5,7 @@ import './index.css'
 import { LogLevel, newLogger } from './pkg/logger'
 
 globalThis.logger = newLogger(import.meta.env.DEV ? LogLevel.DEBUG : LogLevel.INFO)
+// globalThis.logger = newLogger(LogLevel.DEBUG)
 
 const root = document.getElementById('root')
 

@@ -7,11 +7,9 @@ const LABEL_SHOW_THUMBNAILS = 'show-thumbnails'
 const VALUE_SHOW_THUMBNAILS = 'true'
 const VALUE_HIDE_THUMBNAILS = 'false'
 
-function observeAndAct (action) {
+function observeAndAct(action) {
   action()
   const observer = new MutationObserver(action)
-
-  observer.
 
   observer.observe(document.body, {
     subtree: true,
@@ -22,7 +20,7 @@ function observeAndAct (action) {
   return observer
 }
 
-function blockYoutubeShorts (selector = YOUTUBE_SHORTS_SELECTOR) {
+function blockYoutubeShorts(selector = YOUTUBE_SHORTS_SELECTOR) {
   const items = document.querySelectorAll(selector)
   if (items.length > 0) {
     console.log('[control-center] found these youtube shorts, removing them', items)
@@ -46,7 +44,7 @@ function hideImages(selector) {
   }
 }
 
-function showImages (selector) {
+function showImages(selector) {
   const items = document.querySelectorAll(selector)
   if (items.length > 0) {
     console.log('[control-center] found these many images, showing them', items.length)
@@ -62,14 +60,14 @@ function observeAndHideThumbnails() {
     hideImages(THUMBNAIL_IMAGES_SELECTOR)
   })
 
-  let observer = null;
+  let observer = null
 
   const start = () => {
     if (observer != null) {
       stop()
     }
 
-    console.log("observe called")
+    console.log('observe called')
 
     observer = newObserver()
     observer.observe(document.body, {
@@ -79,7 +77,7 @@ function observeAndHideThumbnails() {
   }
 
   const stop = () => {
-    console.log("stop called")
+    console.log('stop called')
     observer.disconnect()
     observer = null
   }
@@ -89,7 +87,7 @@ function observeAndHideThumbnails() {
 
 // const thumbnailsHider = observeAndHideThumbnails()
 
-function addButtonOnYoutubeMastHead (element) {
+function addButtonOnYoutubeMastHead(element) {
   const container = document.querySelector('#container #end')
   container.insertBefore(element, container.firstChild)
 }

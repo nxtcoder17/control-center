@@ -32,6 +32,12 @@ export const BrowserTab: Component<BrowserTabAttrs> = (props: BrowserTabAttrs) =
     }
   })
 
+  createEffect(() => {
+    if (props.vimMark) {
+      logger.info('vim-mark', { vimMark: props.vimMark, tabTitle: props.tabInfo.title, tabId: props.tabInfo.id })
+    }
+  })
+
   return <div class="flex-1 flex flex-row gap-3 tracking-wide text-gray-700 px-2 py-1 cursor-pointer transition-all items-center overflow-y-auto overflow-x-auto"
     classList={{
       'bg-slate-300 dark:bg-slate-900 dark:text-slate-300': props.isSelected,
