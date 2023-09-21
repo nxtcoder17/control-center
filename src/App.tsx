@@ -70,19 +70,6 @@ function placeholderForMode(m: Mode): string {
   }
 }
 
-// function modeToString(m: Mode): string {
-//   switch (m) {
-//     case Mode.Search:
-//       return 'search'
-//     case Mode.Action:
-//       return 'action'
-//     case Mode.Group:
-//       return 'group'
-//     case Mode.Marks:
-//       return 'marks'
-//   }
-// }
-
 function isExtensionTab(tab: browser.Tabs.Tab): boolean {
   return tab.url?.startsWith(browser.runtime.getURL('')) ?? false
 }
@@ -125,8 +112,8 @@ export default function App() {
   browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     logger.debug('listened for onUpdated', { tabId, changeInfo, tab })
     setTabs((d) => {
-      if (tabId != null && changeInfo.status === 'complete') {
-        logger.info('listened for onUpdated taburl', { url: tab.url, browserUrl: browser.runtime.getURL('') })
+      if (tabId != null && tab.status === 'complete') {
+        logger.debug('updated tab', { url: tab.url })
         if (isExtensionTab(tab)) {
           return
         }
@@ -178,37 +165,40 @@ export default function App() {
 
   createEffect(() => {
     if (mode() === Mode.Search && query[Mode.Search].startsWith('`')) {
-      setMode(Mode.Marks)
-      setQuery(produce(q => {
-        q[Mode.Marks] = query[Mode.Search]
-        q[Mode.Search] = ''
-      }))
+      batch(() => {
+        setMode(Mode.Marks)
+        setQuery(produce(q => {
+          q[Mode.Marks] = query[Mode.Search]
+          q[Mode.Search] = ''
+        }))
+      })
+    }
+  })
+
+  createEffect(() => {
+    if (mode() !== Mode.Marks) {
+      return null
     }
 
-    if (mode() === Mode.Marks) {
-      if (query[Mode.Marks].length === 0) {
-        setMode(Mode.Search)
-      }
+    if (query[Mode.Marks].length === 0) {
+      setMode(Mode.Search)
+    }
 
+    // trying to check whether mark is begin accessed
+    if (query[Mode.Marks].length === 2 && query[Mode.Marks][0] === '`') {
       const mark = query[Mode.Marks][1]
-      if (query[Mode.Marks].length === 2) {
+      void (async () => {
+        await browser.tabs.update(marks()[mark], { active: true })
         setQuery(produce(q => {
           q[Mode.Marks] = ''
         }))
-        void (async () => {
-          await browser.tabs.update(Number(marks()[mark]), { active: true })
-        })()
-      }
-    }
-
-    if (mode() === Mode.Marks && query[Mode.Marks].length === 0) {
-      setMode(Mode.Search)
+      })()
     }
   })
 
   const matchedTabs = (): MatchedTabs => {
     if (mode() === Mode.Marks) {
-      const tabIds = Object.keys(tabToMarks()).map(Number)
+      const tabIds = Object.keys(tabToMarks()).map(Number).filter(tabId => tabId in tabs().data)
       const x = {
         list: tabIds,
         data: tabIds.reduce((acc, curr) => {
@@ -216,6 +206,7 @@ export default function App() {
         }, {}),
         matches: {},
       }
+      logger.info('matchedTabs', { x })
       return x
     }
 
@@ -257,6 +248,23 @@ export default function App() {
 
   const [activeSelection, setActiveSelection] = createSignal(0)
 
+  function groupAction(event: KeyboardEvent) {
+    if (mode() !== Mode.Group) {
+      return
+    }
+
+    if (event.ctrlKey && event.key === 'd') {
+      event.preventDefault()
+      const tabIds = matchedTabs().list
+      void (async () => {
+        await browser.tabs.remove(tabIds)
+      })()
+      setQuery(produce(q => {
+        q[Mode.Group] = ''
+      }))
+    }
+  }
+
   function onKeyDown(event: KeyboardEvent) {
     // mode switching
     if (event.key === 'Escape') {
@@ -295,6 +303,19 @@ export default function App() {
     if (event.key === 'ArrowDown') {
       setActiveSelection((idx) => idx + 1)
     }
+
+    if (event.ctrlKey && event.key === 'd') {
+      event.preventDefault()
+      const tabId = matchedTabs().list[activeSelection()]
+      void (async () => {
+        await browser.tabs.remove(tabId)
+      })()
+      setQuery(produce(q => {
+        q[Mode.Search] = ''
+      }))
+    }
+
+    groupAction(event)
   }
 
   createEffect(() => {
@@ -339,9 +360,8 @@ export default function App() {
     }
   })
 
-  return <PageRoot debug>
+  return <PageRoot>
     <div class="px-16 py-6 h-full flex-1 flex flex-col gap-3 dark:bg-slate-800">
-      <div class="text-red-200">Mode: {JSON.stringify(mode())}</div>
       <form
         onKeyDown={onKeyDown}
         onSubmit={(e) => {
@@ -417,12 +437,14 @@ export default function App() {
         </Switch>
       </form>
 
+      <div class="text-medium text-2xl dark:text-gray-200">Tabs ({matchedTabs().list.length || 0}/{tabs().list.length})</div>
+
       <div class="overflow-x-visible flex-1 relative">
         <div class="overflow-y-auto flex flex-col gap-2">
           <For each={matchedTabs().list}>
             {(tabId, idx) => {
               return <BrowserTab
-                index={tabs().data[tabId]?.index}
+                index={idx() + 1}
                 vimMark={tabToMarks()?.[tabId]}
                 tabInfo={tabs().data[tabId]}
                 isSelected={activeSelection() === idx()}

@@ -36,6 +36,10 @@ export const BrowserTab: Component<BrowserTabAttrs> = (props: BrowserTabAttrs) =
     if (props.vimMark) {
       logger.info('vim-mark', { vimMark: props.vimMark, tabTitle: props.tabInfo.title, tabId: props.tabInfo.id })
     }
+    // if (props.tabInfo == null) {
+    //   logger.info('tabInfo is null', { tabInfo: props.tabInfo, index: props.index })
+    // }
+    // logger.info('tabInfo is', { tabInfo: props.tabInfo, index: props.index })
   })
 
   return <div class="flex-1 flex flex-row gap-3 tracking-wide text-gray-700 px-2 py-1 cursor-pointer transition-all items-center overflow-y-auto overflow-x-auto"
