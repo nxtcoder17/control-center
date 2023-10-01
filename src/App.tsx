@@ -7,6 +7,8 @@ import { BrowserTab } from './components/browser-tab'
 import { PowerlineIcon } from './components/icons'
 import { fuzzyFind } from './pkg/fuzzy/fuzzy-finder'
 import { createStore, produce } from 'solid-js/store'
+import { musicControls } from './webext-apis/music-controls'
+import { P } from 'pino'
 
 interface Tabs {
   list: number[]
@@ -82,7 +84,6 @@ export default function App() {
     const t2 = t
       .filter(item => item.url !== browser.runtime.getURL('src/background.html'))
       .reduce((acc, curr) => {
-        // logger.info('debug:', { url: curr.url })
         if (isExtensionTab(curr)) {
           logger.info('skipping background page', { url: curr.url })
           return acc
@@ -102,9 +103,7 @@ export default function App() {
 
   const setTabs = (f: (argTabs: Tabs) => void) => {
     mutateTabs(t => {
-      logger.debug('prev:', { len: t.list.length })
       f(t)
-      logger.debug('post:', { len: t.list.length })
       return { ...t }
     })
   }
@@ -113,7 +112,6 @@ export default function App() {
     logger.debug('listened for onUpdated', { tabId, changeInfo, tab })
     setTabs((d) => {
       if (tabId != null && tab.status === 'complete') {
-        logger.debug('updated tab', { url: tab.url })
         if (isExtensionTab(tab)) {
           return
         }
@@ -140,21 +138,23 @@ export default function App() {
     if (v == null) {
       return DEFAULT_EMPTY_MARKS
     }
+
     return v
   }
 
   const [marks, { mutate: setMarks }] = createResource<Marks>(fetchMarks, { initialValue: {} satisfies Marks, name: 'marks' })
 
-  const tabToMarks: Accessor<TabToMarks> = () => Object.entries(marks()).reduce((acc, [mark, tabId]) => {
-    return { ...acc, [tabId]: mark }
-  }, {} satisfies TabToMarks)
+  const tabToMarks: Accessor<TabToMarks> = () => Object.entries(marks())
+    .filter(([_, tabId]) => !tabs().data[tabId]?.url?.startsWith('moz-extension://'))
+    .reduce((acc, [mark, tabId]) => {
+      return { ...acc, [tabId]: mark }
+    }, {} satisfies TabToMarks)
 
   createEffect(() => {
     const lMarks = marks()
     if (Object.keys(lMarks).length === 0) {
       return
     }
-    logger.debug('going to persist marks', { marks: lMarks })
     void (async () => {
       await browserApi.localStore.set('tabs-vim-marks', lMarks)
       logger.debug('persisted marks into local-storage', { marks: lMarks })
@@ -256,12 +256,80 @@ export default function App() {
     if (event.ctrlKey && event.key === 'd') {
       event.preventDefault()
       const tabIds = matchedTabs().list
+      logger.info('going to close tabs', { tabIds })
       void (async () => {
         await browser.tabs.remove(tabIds)
       })()
+
+      batch(() => {
+        setQuery(produce(q => {
+          q[Mode.Group] = ''
+          q[Mode.Search] = ''
+        }))
+
+        setMode(Mode.Search)
+        logger.debug('mode: ', { mode: mode() })
+      })
+    }
+  }
+
+  function searchActions(event: KeyboardEvent) {
+    if (mode() !== Mode.Search) {
+      return
+    }
+
+    if (event.ctrlKey && event.key === 'x') {
+      event.preventDefault()
+      setMode(v => {
+        if (v === Mode.Group) {
+          return Mode.Search
+        }
+        return Mode.Group
+      })
+    }
+
+    if (event.ctrlKey && event.key === 'd') {
+      event.preventDefault()
+      const tabId = matchedTabs().list[activeSelection()]
+      void (async () => {
+        await browser.tabs.remove(tabId)
+      })()
       setQuery(produce(q => {
-        q[Mode.Group] = ''
+        q[Mode.Search] = ''
       }))
+    }
+  }
+
+  function musicActions(event: KeyboardEvent) {
+    if (mode() !== Mode.Action) {
+      return
+    }
+
+    if (event.code === 'Space' || event.code === 'ShiftLeft') {
+      event.preventDefault()
+      const tabId = matchedTabs().list[activeSelection()]
+      void (async () => {
+        await musicControls.playOrPauseSong(tabId)
+      })()
+      logger.info('playing or pausing song', { tabId })
+    }
+
+    if (event.code === 'ArrowRight') {
+      event.preventDefault()
+      const tabId = matchedTabs().list[activeSelection()]
+      void (async () => {
+        const songInfo = await musicControls.nextSong(tabId)
+        logger.info('playing next song', { title: songInfo?.title })
+      })()
+    }
+
+    if (event.code === 'ArrowLeft') {
+      event.preventDefault()
+      const tabId = matchedTabs().list[activeSelection()]
+      void (async () => {
+        const songInfo = await musicControls.prevSong(tabId)
+        logger.info('playing prev song', { title: songInfo?.title })
+      })()
     }
   }
 
@@ -284,19 +352,8 @@ export default function App() {
       return
     }
 
-    if (event.ctrlKey && event.key === 'x') {
-      event.preventDefault()
-      setMode(v => {
-        if (v === Mode.Group) {
-          return Mode.Search
-        }
-        return Mode.Group
-      })
-    }
-
     if (event.key === 'ArrowUp') {
       setActiveSelection((idx) => idx - 1)
-      // setActiveMatch((am) => am - 1)
       return
     }
 
@@ -304,18 +361,9 @@ export default function App() {
       setActiveSelection((idx) => idx + 1)
     }
 
-    if (event.ctrlKey && event.key === 'd') {
-      event.preventDefault()
-      const tabId = matchedTabs().list[activeSelection()]
-      void (async () => {
-        await browser.tabs.remove(tabId)
-      })()
-      setQuery(produce(q => {
-        q[Mode.Search] = ''
-      }))
-    }
-
+    searchActions(event)
     groupAction(event)
+    musicActions(event)
   }
 
   createEffect(() => {
@@ -335,7 +383,6 @@ export default function App() {
 
   createEffect(() => {
     if (mode() === Mode.Action && query[mode()].length === 2 && query[mode()].startsWith('m')) {
-      console.log('mode is action and query starts with m')
       const mark = query[Mode.Action][1]
       const tabId = matchedTabs().list[activeSelection()]
       if (tabId != null) {
@@ -345,6 +392,23 @@ export default function App() {
           }))
           setMarks((m) => {
             return { ...m, [mark]: tabId }
+          })
+          setMode(Mode.Search)
+        })
+      }
+    }
+
+    if (mode() === Mode.Action && query[mode()].length === 2 && query[mode()].startsWith('d')) {
+      const mark = query[Mode.Action][1]
+      const tabId = matchedTabs().list[activeSelection()]
+      if (tabId != null) {
+        batch(() => {
+          setQuery(produce(q => {
+            q[Mode.Action] = ''
+          }))
+          setMarks((m) => {
+            delete m[mark]
+            return { ...m }
           })
           setMode(Mode.Search)
         })

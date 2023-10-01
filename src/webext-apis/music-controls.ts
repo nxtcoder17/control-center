@@ -8,9 +8,7 @@ interface MusicControls {
 }
 
 const nextSong = async (tabId: number) => {
-  const msg = await browser.tabs.sendMessage(tabId, { method: 'next' })
-  console.log('next-song msg: ', msg)
-  return msg
+  return await browser.tabs.sendMessage(tabId, { method: 'next' })
 }
 
 const prevSong = async (tabId: number) => {

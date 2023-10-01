@@ -3,7 +3,7 @@ version: 3
 tasks:
   dev:firefox:
     env:
-      DEV: true
+      VITE_RUN_MODE: dev
     cmds:
       - fwatcher --exec "pnpm run dev:firefox" --ext ".jsx" --ext ".js" --ext ".json" --ext ".tsx" --ext ".ts" --exclude-dir "dist"
 
