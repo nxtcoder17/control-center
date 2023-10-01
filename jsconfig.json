@@ -1,8 +1,0 @@
-{
-  "compilerOptions": {
-    "baseUrl": ".",
-  },
-  "include": ["src/**/*.js", "src/**/*.jsx", "src/pkg/**/*.js", "node_modules/solid-blocks"],
-  "exclude": ["node_modules", "**/node_modules", "dist"]
-}
-

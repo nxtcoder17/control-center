@@ -11,20 +11,20 @@ const pauseSong = () => {
 }
 
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
-  if (request.method == 'pause') {
+  if (request.method === 'pause') {
     pauseSong()
     sendResponse("ok")
     return
   }
 
-  if (request.method == 'next') {
+  if (request.method === 'next') {
     nextSong()
     sendResponse("ok")
     return
   }
 
 
-  if (request.method == "prev") {
+  if (request.method === "prev") {
     previousSong()
     sendResponse("ok")
     return
