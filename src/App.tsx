@@ -8,7 +8,6 @@ import { PowerlineIcon } from './components/icons'
 import { fuzzyFind } from './pkg/fuzzy/fuzzy-finder'
 import { createStore, produce } from 'solid-js/store'
 import { musicControls } from './webext-apis/music-controls'
-import { P } from 'pino'
 
 interface Tabs {
   list: number[]
@@ -40,7 +39,7 @@ interface QueryTextFieldArgs {
   class?: string
 }
 
-const QueryTextField: Component<QueryTextFieldArgs> = (props) => {
+const QueryTextField: Component<QueryTextFieldArgs> = (props: QueryTextFieldArgs) => {
   return <TextField
     value={props.value}
     ref={props.ref}
@@ -512,7 +511,7 @@ export default function App() {
                 vimMark={tabToMarks()?.[tabId]}
                 tabInfo={tabs().data[tabId]}
                 isSelected={activeSelection() === idx()}
-                // matches={matchedTabs()?.data[tabId].matches}
+                matches={matchedTabs()?.matches[tabId]}
                 onClick={() => {
                   void (async () => {
                     await browser.tabs.update(tabId, { active: true })

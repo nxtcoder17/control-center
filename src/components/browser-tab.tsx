@@ -16,12 +16,15 @@ const FavIcon = (props: { favIconUrl: string, isGithub: boolean }) => {
   </Switch>
 }
 
+interface MatchAttrs { key: string, value: string, indices?: number[][] }
+
 interface BrowserTabAttrs {
   isSelected?: boolean
   onClick: () => void
   vimMark?: string | null
   index: number
   tabInfo: browser.Tabs.Tab
+  matches: MatchAttrs[]
 }
 
 export const BrowserTab: Component<BrowserTabAttrs> = (props: BrowserTabAttrs) => {
@@ -36,10 +39,7 @@ export const BrowserTab: Component<BrowserTabAttrs> = (props: BrowserTabAttrs) =
     if (props.vimMark) {
       logger.info('vim-mark', { vimMark: props.vimMark, tabTitle: props.tabInfo.title, tabId: props.tabInfo.id })
     }
-    // if (props.tabInfo == null) {
-    //   logger.info('tabInfo is null', { tabInfo: props.tabInfo, index: props.index })
-    // }
-    // logger.info('tabInfo is', { tabInfo: props.tabInfo, index: props.index })
+    console.log('matches: ', props.tabInfo.url, props.matches)
   })
 
   return <div class="flex-1 flex flex-row gap-3 tracking-wide text-gray-700 px-2 py-1 cursor-pointer transition-all items-center overflow-y-auto overflow-x-auto"
@@ -65,13 +65,28 @@ export const BrowserTab: Component<BrowserTabAttrs> = (props: BrowserTabAttrs) =
         <FavIcon favIconUrl={props.tabInfo.favIconUrl ?? ''} isGithub={props.tabInfo.url?.startsWith('https://github.com') ?? false} />
       </div>
     </div>
-    <div class="flex-initial text-lg w-2/3 truncate">{props.tabInfo.title}</div>
+    {/* <div class="flex-initial text-lg w-2/3 truncate">{props.tabInfo.title}</div> */}
+    <div class="flex-initial text-lg w-2/3 truncate">
+      {props.tabInfo.title}
+      {/* {props.tabInfo.title.split('').map((char, index) => { */}
+      {/*   return <span classList={{ */}
+      {/*     'bg-yellow-100 text-yellow-900 scale-120 tracking-wide': props.matches?.some(match => match.key === 'title' && match.indices?.some(indices => indices[0] <= index && index <= indices[1])), */}
+      {/*   }}>{char}</span> */}
+      {/* })} */}
+    </div>
     <div class="flex-initial text-sm w-1/3 truncate"
       classList={{
         'dark:text-slate-400 text-slate-600': props.isSelected,
         'dark:text-slate-500 text-slate-400': !props.isSelected,
       }}
-    >{props.tabInfo.url?.split('?')[0]}</div>
+    >
+      {props.tabInfo.url}
+      {/* {props.tabInfo.url?.split('?')[0].split('').map((char, index) => { */}
+      {/*   return <span classList={{ */}
+      {/*     'bg-yellow-100 text-yellow-900 scale-120 tracking-wide': props.matches?.some(match => match.key === 'url' && match.indices?.some(indices => indices[0] <= index && index <= indices[1])), */}
+      {/*   }}>{char}</span> */}
+      {/* })} */}
+    </div>
     <div class="">{props.tabInfo.pinned ? <TbPinned class="w-5 h-5" /> : <div class='w-5 h-5' />}</div>
     <div class="">{props.tabInfo.mutedInfo?.muted ? < TbVolumeOff class="w-5 h-5" /> : <div class='w-5 h-5' />}</div>
   </div >
