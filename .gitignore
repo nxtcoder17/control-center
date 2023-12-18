@@ -4,3 +4,5 @@ dist.firefox/*
 dist.chrome/*
 *.zip
 .idea
+.envrc
+.direnv
