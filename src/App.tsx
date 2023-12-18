@@ -89,6 +89,8 @@ export default function App() {
         }
         tIdx += 1
 
+        logger.debug('adding tab', { tab: curr })
+
         return {
           list: [...acc.list, Number(curr.id)],
           data: { ...acc.data, [Number(curr.id)]: { ...curr, idx: tIdx } },
@@ -255,7 +257,7 @@ export default function App() {
     if (event.ctrlKey && event.key === 'd') {
       event.preventDefault()
       const tabIds = matchedTabs().list
-      logger.info('going to close tabs', { tabIds })
+      logger.debug('going to close tabs', { tabIds })
       void (async () => {
         await browser.tabs.remove(tabIds)
       })()
