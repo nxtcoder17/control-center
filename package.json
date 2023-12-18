@@ -1,17 +1,12 @@
 {
   "name": "control-center",
   "version": "1.0.0",
-  "description": "",
+  "description": "tabs management tool",
   "main": "index.js",
   "scripts": {
-    "start": "vite",
-    "dev": "vite dev",
+    "dev": "vite build --minify false --mode dev",
     "build": "vite build",
-    "build:firefox": "vite build",
-    "dev:firefox": "vite build --minify false --mode dev",
-    "serve": "vite preview",
     "web-ext": "cd dist && web-ext run --start-url \"about:debugging#/runtime/this-firefox\"",
-
     "fuzzy": "node --loader ts-node/esm ./src/pkg/fuzzy/fuzzy-finder.ts"
   },
   "keywords": [],

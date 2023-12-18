@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite'
 import solidPlugin from 'vite-plugin-solid'
-import manifest from './manifest.firefox.json'
+import firefoxManifest from './manifest.firefox.json'
+import chromeManifest from './manifest.chrome.json'
 import webExtension from '@samrum/vite-plugin-web-extension'
 import fs from 'fs-extra'
 import path from 'path'
@@ -36,11 +37,15 @@ interface StaticFileArg {
   to: string
 }
 
+function isFirefox() {
+  return process.env.VITE_BUILD_FOR_FIREFOX === 'true'
+}
+
 export default defineConfig({
   plugins: [
     solidPlugin(),
     webExtension({
-      manifest,
+      manifest: isFirefox() ? firefoxManifest : chromeManifest,
     }),
   ],
   // base: '/dist',
@@ -49,6 +54,7 @@ export default defineConfig({
   },
   build: {
     target: 'esnext',
+    outDir: isFirefox() ? 'dist.firefox' : 'dist.chrome',
     rollupOptions: {
       treeshake: true,
       input: 'src/background.html',
