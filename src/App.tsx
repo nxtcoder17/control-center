@@ -1,55 +1,25 @@
-import { createResource, createSignal, For, type Component, type Ref, Switch, Match, createEffect, batch, type Accessor } from 'solid-js'
-import { browserApi } from './webext-apis/browser-api'
+import { createSignal, For, type Ref, Switch, Match, createEffect, batch, type Accessor } from 'solid-js'
 import * as browser from 'webextension-polyfill'
-import { PageRoot } from './components/page'
-import { TextField } from './components/inputs'
-import { BrowserTab } from './components/browser-tab'
-import { PowerlineIcon } from './components/icons'
+import { PageRoot } from './lib/components/page'
+import { BrowserTab } from './lib/components/browser-tab'
+import { PowerlineIcon } from './lib/components/icons'
 import { fuzzyFind } from './pkg/fuzzy/fuzzy-finder'
 import { createStore, produce } from 'solid-js/store'
-import { musicControls } from './webext-apis/music-controls'
+import { musicControls } from './lib/webext-apis/music-controls'
+import { withTabs } from './lib/hooks/tabs'
+import { QueryTextField } from './lib/components/query-text-field'
+import { useMarks } from './lib/hooks/marks'
+import { type Tabs, DEFAULT_EMPTY_TABS } from './lib/types'
+import { browserApi } from './lib/webext-apis/browser-api'
 
-interface Tabs {
-  list: number[]
-  // data: Map<number, browser.Tabs.Tab>
-  data: Record<number, browser.Tabs.Tab & { idx?: number }>
-}
-
-const DEFAULT_EMPTY_TABS: Tabs = { list: [] as number[], data: {} satisfies Record<number, browser.Tabs.Tab> }
+export type MatchedTabs = Tabs & { matches: Record<number, MatchAttrs[]> }
+export const DEFAULT_EMPTY_MATCHED_TABS: MatchedTabs = { ...DEFAULT_EMPTY_TABS, matches: {} satisfies Record<number, MatchAttrs[]> }
 
 interface MatchAttrs { key: string, value: string, indices?: number[][] }
 
-type MatchedTabs = Tabs & { matches: Record<number, MatchAttrs[]> }
-
 const DEFAULT_MATCH_ATTRS: MatchAttrs = { key: '', value: '', indices: [] as number[][] }
 
-const DEFAULT_EMPTY_MATCHED_TABS: MatchedTabs = { ...DEFAULT_EMPTY_TABS, matches: {} satisfies Record<number, MatchAttrs[]> }
-
-type Marks = Record<string, number>
-const DEFAULT_EMPTY_MARKS: Marks = {} satisfies Marks
-
-type TabToMarks = Record<number, string>
-
-interface QueryTextFieldArgs {
-  ref?: Ref<HTMLInputElement>
-  value: string
-  setValue: (value: string) => void
-  placeholder: string
-  disabled?: boolean
-  class?: string
-}
-
-const QueryTextField: Component<QueryTextFieldArgs> = (props: QueryTextFieldArgs) => {
-  return <TextField
-    value={props.value}
-    ref={props.ref}
-    setValue={(v) => { props.setValue(v) }}
-    placeholder={props.placeholder}
-    autofocus
-    disabled={props.disabled}
-    class={`bg-slate-100 dark:bg-slate-900 dark:text-blue-50 rounded-r-md w-full px-4 py-2 text-lg leading-4 tracking-wider outline-none focus:outline-none border-none ring-0 focus:ring-0 flex-1 placeholder:font-bold placeholder:text-lg ${props.class ?? ''}`}
-  />
-}
+export type TabToMarks = Record<number, string>
 
 enum Mode {
   Search = 0,
@@ -71,79 +41,10 @@ function placeholderForMode(m: Mode): string {
   }
 }
 
-function isExtensionTab(tab: browser.Tabs.Tab): boolean {
-  return tab.url?.startsWith(browser.runtime.getURL('')) ?? false
-}
+const App = () => {
+  const tabs = withTabs()
 
-export default function App() {
-  const fetchListOfTabs = async (): Promise<Tabs> => {
-    const t = await browserApi.listAllTabs()
-
-    let tIdx = 0
-    const t2 = t
-      .filter(item => item.url !== browser.runtime.getURL('src/background.html'))
-      .reduce((acc, curr) => {
-        if (isExtensionTab(curr)) {
-          logger.info('skipping background page', { url: curr.url })
-          return acc
-        }
-        tIdx += 1
-
-        logger.debug('adding tab', { tab: curr })
-
-        return {
-          list: [...acc.list, Number(curr.id)],
-          data: { ...acc.data, [Number(curr.id)]: { ...curr, idx: tIdx } },
-        }
-      }, DEFAULT_EMPTY_TABS)
-
-    return t2
-  }
-
-  const [tabs, { mutate: mutateTabs }] = createResource<Tabs>(fetchListOfTabs, { initialValue: { list: [], data: {} }, name: 'fetching list of tabs' })
-
-  const setTabs = (f: (argTabs: Tabs) => void) => {
-    mutateTabs(t => {
-      f(t)
-      return { ...t }
-    })
-  }
-
-  browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-    logger.debug('listened for onUpdated', { tabId, changeInfo, tab })
-    setTabs((d) => {
-      if (tabId != null && tab.status === 'complete') {
-        if (isExtensionTab(tab)) {
-          return
-        }
-        if (!(tabId in d.data)) {
-          d.list.push(tabId)
-        }
-        d.data[tabId] = tab
-      }
-    })
-  })
-
-  browser.tabs.onRemoved.addListener((tabId, removeInfo) => {
-    logger.debug('listened for onRemoved', { tabId, removeInfo })
-    setTabs((d) => {
-      d.list = d.list.filter(id => id !== tabId)
-      delete (d.data[tabId])
-    })
-  })
-
-  const [query, setQuery] = createStore<string[]>(['', '', '', ''])
-
-  async function fetchMarks(): Promise<Marks> {
-    const v = await browserApi.localStore.get<Marks>('tabs-vim-marks')
-    if (v == null) {
-      return DEFAULT_EMPTY_MARKS
-    }
-
-    return v
-  }
-
-  const [marks, { mutate: setMarks }] = createResource<Marks>(fetchMarks, { initialValue: {} satisfies Marks, name: 'marks' })
+  const [marks, setMarks] = useMarks()
 
   const tabToMarks: Accessor<TabToMarks> = () => Object.entries(marks())
     .filter(([_, tabId]) => !tabs().data[tabId]?.url?.startsWith('moz-extension://'))
@@ -151,16 +52,7 @@ export default function App() {
       return { ...acc, [tabId]: mark }
     }, {} satisfies TabToMarks)
 
-  createEffect(() => {
-    const lMarks = marks()
-    if (Object.keys(lMarks).length === 0) {
-      return
-    }
-    void (async () => {
-      await browserApi.localStore.set('tabs-vim-marks', lMarks)
-      logger.debug('persisted marks into local-storage', { marks: lMarks })
-    })()
-  })
+  const [query, setQuery] = createStore<string[]>(['', '', '', ''])
 
   const [mode, setMode] = createSignal<Mode>(Mode.Search)
 
@@ -298,6 +190,28 @@ export default function App() {
       setQuery(produce(q => {
         q[Mode.Search] = ''
       }))
+    }
+
+    if (event.ctrlKey && event.key === 'm') {
+      event.preventDefault()
+      const tabId = matchedTabs().list[activeSelection()]
+      void (async () => {
+        await browserApi.toggleMute(tabId)
+      })()
+      // setQuery(produce(q => {
+      //   q[Mode.Search] = ''
+      // }))
+    }
+
+    if (event.ctrlKey && event.key === 'p') {
+      event.preventDefault()
+      const tabId = matchedTabs().list[activeSelection()]
+      void (async () => {
+        await browserApi.togglePin(tabId)
+      })()
+      // setQuery(produce(q => {
+      //   q[Mode.Search] = ''
+      // }))
     }
   }
 
@@ -528,3 +442,5 @@ export default function App() {
 
   </PageRoot >
 }
+
+export default App

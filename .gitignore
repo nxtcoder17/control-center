@@ -1,8 +1,6 @@
 node_modules/
-dist/
-dist.firefox/*
-dist.chrome/*
 *.zip
 .idea
 .envrc
 .direnv
+.dist

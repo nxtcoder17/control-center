@@ -1,6 +1,6 @@
 // import { Select } from 'solid-blocks';
 import { createEffect, createResource, createSignal } from 'solid-js'
-import { browserApi } from '../webext-apis/browser-api'
+import { browserApi } from '../lib/webext-apis/browser-api'
 import { produce } from 'solid-js/store'
 // import { NxtSelect } from '../components/select';
 
@@ -57,7 +57,7 @@ export const OptionsPage = () => {
           }))
         }}
       >
-        <option value="light" selected={ options().theme === THEME_LIGHT}>Light</option>
+        <option value="light" selected={options().theme === THEME_LIGHT}>Light</option>
         <option value="dark" selected={options().theme === THEME_DARK}>Dark</option>
       </select>
     </div>
@@ -68,8 +68,8 @@ export const OptionsPage = () => {
         disabled
         id="extension-shortcut"
         type="text" class="bg-gray-200 rounded-md checked:bg-green-500 border-none" placeholder='Ctrl+Shift+E'
-        // value={keyboardShortcut().trim()}
-        // onInput={e => setKeyboardShortcut(e.target.value)}
+      // value={keyboardShortcut().trim()}
+      // onInput={e => setKeyboardShortcut(e.target.value)}
       />
     </div>
 

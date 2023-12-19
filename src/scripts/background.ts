@@ -2,21 +2,21 @@ import * as browser from 'webextension-polyfill'
 
 const url = browser.runtime.getURL('src/background.html')
 
-async function listTabs () {
+async function listTabs() {
   return await browser.tabs.query({
     currentWindow: true,
     pinned: true,
-    url
+    url,
   })
 }
 
-async function ensureExtensionTab (): Promise<number | undefined> {
+async function ensureExtensionTab(): Promise<number | undefined> {
   const t = await listTabs()
   if (t.length === 0) {
     const extensionTab = await browser.tabs.create({
       active: false,
       url,
-      pinned: true
+      pinned: true,
     })
 
     return extensionTab.id
@@ -27,13 +27,12 @@ async function ensureExtensionTab (): Promise<number | undefined> {
 
 type TabId = number | undefined
 
-async function ensurePreviousTabId (tabId: TabId): Promise<number | undefined> {
+async function ensurePreviousTabId(tabId: TabId): Promise<number | undefined> {
   const [currTab] = await browser.tabs.query({ active: true })
 
   let gotoId = tabId
   const tabs = await listTabs()
   for (let i = 0; i < tabs.length; i++) {
-    // console.log(`tab[i].id: ${tabs[i].id} tabId: ${tabId}`)
     if (tabs[i].id === tabId) {
       return tabId
     }
@@ -46,7 +45,7 @@ async function ensurePreviousTabId (tabId: TabId): Promise<number | undefined> {
   return gotoId
 }
 
-async function init () {
+async function init() {
   const extensionTabId = await ensureExtensionTab()
   let prevTabId: TabId
 
@@ -63,7 +62,7 @@ async function init () {
     prevTabId = currTab.id
     await browser.tabs.update(extensionTabId, {
       active: true,
-      openerTabId: prevTabId
+      openerTabId: prevTabId,
     })
   }
 
@@ -74,6 +73,6 @@ async function init () {
   })
 }
 
-init().catch((err) => {
+init().catch((err: Error) => {
   logger.error(err)
 })

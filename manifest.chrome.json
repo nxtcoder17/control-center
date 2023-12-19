@@ -47,12 +47,12 @@
   },
 
   "commands": {
-    "toggle-feature": {
+    "control-center": {
       "suggested_key": {
         "default": "Alt+J",
-        "mac": "Command+E"
+        "mac": "Alt+J"
       },
-      "description": "Send a 'toggle-feature' event to the extension"
+      "description": "toggle control center tab"
     }
   }
 }

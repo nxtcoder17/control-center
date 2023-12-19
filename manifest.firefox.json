@@ -41,10 +41,10 @@
   "commands": {
     "control-center": {
       "suggested_key": { 
-        "default": "Ctrl+E",
-        "mac": "Command+E"
+        "default": "Alt+J",
+        "mac": "Alt+J"
       },
-      "description": "Send a 'toggle-feature' event to the extension"
+      "description": "toggle control center tab"
     }
   },
 

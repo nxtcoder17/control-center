@@ -1,31 +1,28 @@
 version: 3
 
+env:
+  VITE_BUILD_DIR_FIREFOX: ".dist/firefox"
+  VITE_BUILD_DIR_CHROME: ".dist/chrome"
+
 tasks:
-  dev:firefox:
+  firefox:dev:
     env:
       VITE_RUN_MODE: dev
       VITE_BUILD_FOR_FIREFOX: true
     cmds:
-      - fwatcher --exec "pnpm run dev:firefox" --ext ".jsx" --ext ".js" --ext ".json" --ext ".tsx" --ext ".ts" --exclude-dir "dist"
+      - fwatcher --exec "pnpm run build" --ext ".jsx" --ext ".js" --ext ".json" --ext ".tsx" --ext ".ts" --exclude-dir ".dist"
 
-  dev:chrome:
+  chrome:dev:
     cmds:
-      # - fwatcher -d "$PWD" -e "pnpm run build" --ext ".jsx"
-      - fwatcher -e "pnpm run dev:chrome" --ext ".jsx" --ext ".js" --exclude-dir "dist"
+      - fwatcher -e "pnpm run build" --ext ".jsx" --ext ".js" --exclude-dir ".dist"
 
-  build:
-    cmds:
-      - npm run build
-
-  build:firefox:
+  firefox:build:
     env:
       VITE_BUILD_FOR_FIREFOX: "true"
     cmds:
       - npm run build
 
-  build:chrome:
-    env:
-      VITE_BUILD_FOR_FIREFOX: "false"
+  chrome:build:
     cmds:
       - npm run build
 

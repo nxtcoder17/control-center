@@ -54,7 +54,7 @@ export default defineConfig({
   },
   build: {
     target: 'esnext',
-    outDir: isFirefox() ? 'dist.firefox' : 'dist.chrome',
+    outDir: isFirefox() ? process.env.VITE_BUILD_DIR_FIREFOX : process.env.VITE_BUILD_DIR_CHROME,
     rollupOptions: {
       treeshake: true,
       input: 'src/background.html',
