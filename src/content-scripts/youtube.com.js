@@ -32,7 +32,7 @@ function blockAdblockPopup(selector = ADBLOCK_POPUP_SELECTOR) {
 
 console.log('[control-center] watching dom for blocking adblock popup')
 observeAndAct(() => {
-  blockAdblockPopup()
+  // blockAdblockPopup()
 })
 
 function blockYoutubeShorts(selector = YOUTUBE_SHORTS_SELECTOR) {
@@ -46,5 +46,5 @@ function blockYoutubeShorts(selector = YOUTUBE_SHORTS_SELECTOR) {
 }
 
 observeAndAct(() => {
-  blockYoutubeShorts()
+  // blockYoutubeShorts()
 })
