@@ -15,7 +15,8 @@ parserOptions:
   sourceType: module
 rules:
   no-tabs:
-    allow-indentation-tabs: true
+    - error
+    - allowIndentationTabs: true
   "@typescript-eslint/indent": ["error", "tab"]
 
   "@typescript-eslint/explicit-function-return-type": 0

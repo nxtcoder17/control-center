@@ -199,7 +199,7 @@ const App = () => {
 				await browserApi.toggleMute(tabId)
 			})()
 			// setQuery(produce(q => {
-			//   q[Mode.Search] = ''
+			// q[Mode.Search] = ''
 			// }))
 		}
 
@@ -210,7 +210,7 @@ const App = () => {
 				await browserApi.togglePin(tabId)
 			})()
 			// setQuery(produce(q => {
-			//   q[Mode.Search] = ''
+			// q[Mode.Search] = ''
 			// }))
 		}
 	}
