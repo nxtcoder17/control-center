@@ -26,12 +26,12 @@ tasks:
     cmds:
       - npm run build
 
-  zip:build:
+  firefox:zip:build:
     cmds:
-      - task: build
+      - task: firefox:build
       - |+
-        pushd dist
-        zip -r ../control-center.zip *
+        pushd .dist/firefox
+        zip -r ../../control-center.zip *
         popd
 
   zip:source:
@@ -39,6 +39,6 @@ tasks:
       - |+
         dir_name=$(basename $PWD)
         pushd ..
-        zip -r control-center-source.zip $dir_name -x "$dir_name/node_modules/*" -x "$dir_name/dist/*" -x "$dir_name/.git/*" -x "$dir_name/.idea/*"
+        zip -r control-center-source.zip $dir_name -x "$dir_name/node_modules/*" -x "$dir_name/.dist/*" -x "$dir_name/.git/*" -x "$dir_name/.idea/*" -x "$dir_name/.direnv/*"
         mv ./control-center-source.zip ./$dir_name/control-center-source.zip
         popd
