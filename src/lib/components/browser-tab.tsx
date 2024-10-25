@@ -1,14 +1,9 @@
 import { TbVolumeOff, TbPinned } from 'solid-icons/tb'
-import { createEffect, Switch, Match, type Ref, type Component } from 'solid-js'
+import { createEffect, Switch, Match, type Ref, type Component, For } from 'solid-js'
 import { FaBrandsGithub } from 'solid-icons/fa'
 import type * as browser from 'webextension-polyfill'
 
 const FavIcon = (props: { favIconUrl: string, isGithub: boolean }) => {
-	// return <Switch fallback={<img src={props.tabInfo.favIconUrl} />}>
-	//   <Match when={props.tabInfo?.url?.startsWith('https://github.com')}>
-	//     <FaBrandsGithub class="w-max h-max" />
-	//   </Match>
-	// </Switch>
 	return <Switch fallback={<img src={props.favIconUrl} />}>
 		<Match when={props.isGithub}>
 			<FaBrandsGithub class="w-max h-max" />
@@ -16,7 +11,12 @@ const FavIcon = (props: { favIconUrl: string, isGithub: boolean }) => {
 	</Switch>
 }
 
-interface MatchAttrs { key: string, value: string, indices?: number[][] }
+interface HlChar {
+	char: string
+	hl: boolean
+}
+
+interface MatchAttrs { title: HlChar[], url?: HlChar[] }
 
 interface BrowserTabAttrs {
 	isSelected?: boolean
@@ -65,14 +65,27 @@ export const BrowserTab: Component<BrowserTabAttrs> = (props: BrowserTabAttrs) =
 				<FavIcon favIconUrl={props.tabInfo.favIconUrl ?? ''} isGithub={props.tabInfo.url?.startsWith('https://github.com') ?? false} />
 			</div>
 		</div>
-		{/* <div class="flex-initial text-lg w-2/3 truncate">{props.tabInfo.title}</div> */}
+
 		<div class="flex-initial text-lg w-2/3 truncate">
 			{props.tabInfo.title}
-			{/* {props.tabInfo.title.split('').map((char, index) => { */}
-			{/*   return <span classList={{ */}
-			{/*     'bg-yellow-100 text-yellow-900 scale-120 tracking-wide': props.matches?.some(match => match.key === 'title' && match.indices?.some(indices => indices[0] <= index && index <= indices[1])), */}
-			{/*   }}>{char}</span> */}
-			{/* })} */}
+			{/**/}
+			{/* <Switch> */}
+			{/* 	<Match when={props.matches && props?.matches[Number(props.tabInfo.id)]?.title}> */}
+			{/* 		<For each={props?.matches[Number(props.tabInfo.id)]?.title}> */}
+			{/* 			{hlchar => { */}
+			{/* 				return <span data-hl={hlchar.hl} classList={{ */}
+			{/* 					// 'text-yellow-800 scale-120 tracking-wide': props.matches?.some(match => match.key === 'title' && match.indices?.some(indices => indices[0] <= index() && index() <= indices[1])), */}
+			{/* 					'text-yellow-800 scale-120 tracking-wide': hlchar.hl, */}
+			{/* 				}}>{hlchar.char}</span> */}
+			{/* 			}} */}
+			{/* 		</For> */}
+			{/* 	</Match> */}
+			{/* 	<Match when={!props.matches?.[Number(props.tabInfo.id)]?.title}> */}
+			{/* 		<For each={(props.tabInfo.title ?? '').split('')}> */}
+			{/* 			{char => <span>{char}</span> } */}
+			{/* 		</For> */}
+			{/* 	</Match> */}
+			{/* </Switch> */}
 		</div>
 		<div class="flex-initial text-sm w-1/3 truncate"
 			classList={{
@@ -82,9 +95,9 @@ export const BrowserTab: Component<BrowserTabAttrs> = (props: BrowserTabAttrs) =
 		>
 			{props.tabInfo.url}
 			{/* {props.tabInfo.url?.split('?')[0].split('').map((char, index) => { */}
-			{/*   return <span classList={{ */}
-			{/*     'bg-yellow-100 text-yellow-900 scale-120 tracking-wide': props.matches?.some(match => match.key === 'url' && match.indices?.some(indices => indices[0] <= index && index <= indices[1])), */}
-			{/*   }}>{char}</span> */}
+			{/*	 return <span classList={{ */}
+			{/*	 'bg-yellow-100 text-yellow-900 scale-120 tracking-wide': props.matches?.some(match => match.key === 'url' && match.indices?.some(indices => indices[0] <= index && index <= indices[1])), */}
+			{/*	 }}>{char}</span> */}
 			{/* })} */}
 		</div>
 		<div class="">{props.tabInfo.pinned ? <TbPinned class="w-5 h-5" /> : <div class='w-5 h-5' />}</div>

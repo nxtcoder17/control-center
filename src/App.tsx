@@ -1,25 +1,51 @@
-import { createSignal, For, type Ref, Switch, Match, createEffect, batch, type Accessor } from 'solid-js'
-import * as browser from 'webextension-polyfill'
-import { PageRoot } from './lib/components/page'
-import { BrowserTab } from './lib/components/browser-tab'
-import { PowerlineIcon } from './lib/components/icons'
-import { fuzzyFind } from './pkg/fuzzy/fuzzy-finder'
-import { createStore, produce } from 'solid-js/store'
-import { musicControls } from './lib/webext-apis/music-controls'
-import { withTabs } from './lib/hooks/tabs'
-import { QueryTextField } from './lib/components/query-text-field'
-import { useMarks } from './lib/hooks/marks'
-import { type Tabs, DEFAULT_EMPTY_TABS } from './lib/types'
-import { browserApi } from './lib/webext-apis/browser-api'
+import {
+	createSignal,
+	For,
+	type Ref,
+	Switch,
+	Match,
+	createEffect,
+	batch,
+	type Accessor,
+} from "solid-js";
+import * as browser from "webextension-polyfill";
+import { PageRoot } from "./lib/components/page";
+import { BrowserTab } from "./lib/components/browser-tab";
+import { PowerlineIcon } from "./lib/components/icons";
+import { fuzzyFind } from "./pkg/fuzzy/fuzzy-finder";
+import { createStore, produce } from "solid-js/store";
+import { musicControls } from "./lib/webext-apis/music-controls";
+import { withTabs } from "./lib/hooks/tabs";
+import { QueryTextField } from "./lib/components/query-text-field";
+import { useMarks } from "./lib/hooks/marks";
+import { type Tabs, DEFAULT_EMPTY_TABS } from "./lib/types";
+import { browserApi } from "./lib/webext-apis/browser-api";
 
-export type MatchedTabs = Tabs & { matches: Record<number, MatchAttrs[]> }
-export const DEFAULT_EMPTY_MATCHED_TABS: MatchedTabs = { ...DEFAULT_EMPTY_TABS, matches: {} satisfies Record<number, MatchAttrs[]> }
+export type MatchedTabs = Tabs & { matches: Record<number, MatchAttrs[]> };
 
-interface MatchAttrs { key: string, value: string, indices?: number[][] }
+export const DEFAULT_EMPTY_MATCHED_TABS: MatchedTabs = {
+	...DEFAULT_EMPTY_TABS,
+	matches: {} satisfies Record<number, MatchAttrs[]>,
+};
 
-const DEFAULT_MATCH_ATTRS: MatchAttrs = { key: '', value: '', indices: [] as number[][] }
+interface HlChar {
+	char: string;
+	hl: boolean;
+}
 
-export type TabToMarks = Record<number, string>
+// interface MatchAttrs { key: string, value: string, indices?: number[][], chunks?: HlChar[] }
+interface MatchAttrs {
+	title: HlChar[];
+	url?: HlChar[];
+}
+
+// const DEFAULT_MATCH_ATTRS: MatchAttrs = { key: '', value: '', indices: [] as number[][], chunks: [] as HlChar[] }
+const DEFAULT_MATCH_ATTRS: MatchAttrs = {
+	title: [] as HlChar[],
+	url: [] as HlChar[],
+};
+
+export type TabToMarks = Record<number, string>;
 
 enum Mode {
 	Search = 0,
@@ -31,76 +57,86 @@ enum Mode {
 function placeholderForMode(m: Mode): string {
 	switch (m) {
 		case Mode.Search:
-			return 'Search Your Tabs'
+			return "Search Your Tabs";
 		case Mode.Action:
-			return 'Act on Your Tabs'
+			return "Act on Your Tabs";
 		case Mode.Group:
-			return 'Perform Grouped Actions on Tab, like closing them all with <Ctrl-d>'
+			return "Perform Grouped Actions on Tab, like closing them all with <Ctrl-d>";
 		case Mode.Marks:
-			return 'Jumps to Marks'
+			return "Jumps to Marks";
 	}
 }
 
 const App = () => {
-	const tabs = withTabs()
+	const tabs = withTabs();
 
-	const [marks, setMarks] = useMarks()
+	const [marks, setMarks] = useMarks();
 
-	const tabToMarks: Accessor<TabToMarks> = () => Object.entries(marks())
-		.filter(([_, tabId]) => !tabs().data[tabId]?.url?.startsWith('moz-extension://'))
-		.reduce((acc, [mark, tabId]) => {
-			return { ...acc, [tabId]: mark }
-		}, {} satisfies TabToMarks)
+	const tabToMarks: Accessor<TabToMarks> = () =>
+		Object.entries(marks())
+			.filter(
+				([_, tabId]) =>
+					!tabs().data[tabId]?.url?.startsWith("moz-extension://"),
+			)
+			.reduce((acc, [mark, tabId]) => {
+				return { ...acc, [tabId]: mark };
+			}, {} satisfies TabToMarks);
 
-	const [query, setQuery] = createStore<string[]>(['', '', '', ''])
+	const [query, setQuery] = createStore<string[]>(["", "", "", ""]);
 
-	const [mode, setMode] = createSignal<Mode>(Mode.Search)
+	const [mode, setMode] = createSignal<Mode>(Mode.Search);
 
 	createEffect(() => {
-		if (mode() === Mode.Search && query[Mode.Search].startsWith('`')) {
+		if (mode() === Mode.Search && query[Mode.Search].startsWith("`")) {
 			batch(() => {
-				setMode(Mode.Marks)
-				setQuery(produce(q => {
-					q[Mode.Marks] = query[Mode.Search]
-					q[Mode.Search] = ''
-				}))
-			})
+				setMode(Mode.Marks);
+				setQuery(
+					produce((q) => {
+						q[Mode.Marks] = query[Mode.Search];
+						q[Mode.Search] = "";
+					}),
+				);
+			});
 		}
-	})
+	});
 
 	createEffect(() => {
 		if (mode() !== Mode.Marks) {
-			return null
+			return null;
 		}
 
 		if (query[Mode.Marks].length === 0) {
-			setMode(Mode.Search)
+			setMode(Mode.Search);
 		}
 
 		// trying to check whether mark is begin accessed
-		if (query[Mode.Marks].length === 2 && query[Mode.Marks][0] === '`') {
-			const mark = query[Mode.Marks][1]
-			void (async () => {
-				await browser.tabs.update(marks()[mark], { active: true })
-				setQuery(produce(q => {
-					q[Mode.Marks] = ''
-				}))
-			})()
+		if (query[Mode.Marks].length === 2 && query[Mode.Marks][0] === "`") {
+			const mark = query[Mode.Marks][1];
+			(async () => {
+				await browser.tabs.update(marks()[mark], { active: true });
+				setQuery(
+					produce((q) => {
+						q[Mode.Marks] = "";
+					}),
+				);
+			})();
 		}
-	})
+	});
 
 	const matchedTabs = (): MatchedTabs => {
 		if (mode() === Mode.Marks) {
-			const tabIds = Object.keys(tabToMarks()).map(Number).filter(tabId => tabId in tabs().data)
+			const tabIds = Object.keys(tabToMarks())
+				.map(Number)
+				.filter((tabId) => tabId in tabs().data);
 			const x = {
 				list: tabIds,
 				data: tabIds.reduce((acc, curr) => {
-					return { ...acc, [curr]: tabs().data[curr] }
+					return { ...acc, [curr]: tabs().data[curr] };
 				}, {}),
 				matches: {},
-			}
-			logger.info('matchedTabs', { x })
-			return x
+			};
+			logger.info("matchedTabs", { x });
+			return x;
 		}
 
 		// search mode
@@ -109,106 +145,127 @@ const App = () => {
 				list: tabs().list,
 				data: tabs().data,
 				matches: {},
-			}
+			};
 		}
 
 		const m = fuzzyFind(Object.values(tabs().data), query[Mode.Search], {
-			searchOnKeys: ['title', 'url'],
-		})
+			searchOnKeys: ["title", "url"],
+		});
 
 		if (m == null || m?.length === 0) {
-			return DEFAULT_EMPTY_MATCHED_TABS
+			return DEFAULT_EMPTY_MATCHED_TABS;
 		}
 
 		return m.reduce((acc, curr) => {
-			const matches = curr.matches?.map(item => {
-				return {
-					key: item.key ?? '',
-					value: item.value ?? '',
-					indices: item.indices.map(x => {
-						return [x[0], x[1]]
-					}),
-				}
-			})
+			const matches = curr.matches?.map((item) => {
+				return {};
+				// const d = {} as MatchAttrs;
+				// if (item.key === "title") {
+				// 	d.title = item.value.split("").map((char, index) => {
+				// 		return {
+				// 			char,
+				// 			hl: item.indices?.some(
+				// 					(idx: number) => idx <= index && index <= idx,
+				// 				) ?? false,
+				// 		};
+				// 	});
+				// }
+				//
+				// if (item.key === "url") {
+				// 	d.url = item.value.split("").map((char, index) => {
+				// 		return {
+				// 			char,
+				// 			hl:
+				// 				item.indices?.some(
+				// 					(idx: number) => idx <= index && index <= idx,
+				// 				) ?? false,
+				// 		};
+				// 	});
+				// }
+			});
 
 			return {
 				list: [...acc.list, Number(curr.item.id)],
 				data: { ...acc.data, [Number(curr.item.id)]: curr.item },
-				matches: { ...acc.matches, [Number(curr.item.id)]: matches ?? [DEFAULT_MATCH_ATTRS] },
-			}
-		}, DEFAULT_EMPTY_MATCHED_TABS)
-	}
+				matches: {
+					...acc.matches,
+					[Number(curr.item.id)]: matches ?? [DEFAULT_MATCH_ATTRS],
+				},
+			};
+		}, DEFAULT_EMPTY_MATCHED_TABS);
+	};
 
-	const [activeSelection, setActiveSelection] = createSignal(0)
+	const [activeSelection, setActiveSelection] = createSignal(0);
 
 	function groupAction(event: KeyboardEvent) {
 		if (mode() !== Mode.Group) {
-			return
+			return;
 		}
 
-		if (event.ctrlKey && event.key === 'd') {
-			event.preventDefault()
-			const tabIds = matchedTabs().list
-			logger.debug('going to close tabs', { tabIds })
-			void (async () => {
-				await browser.tabs.remove(tabIds)
-			})()
+		if (event.ctrlKey && event.key === "d") {
+			event.preventDefault();
+			const tabIds = matchedTabs().list;
+			logger.debug("going to close tabs", { tabIds });
+			(async () => {
+				await browser.tabs.remove(tabIds);
+			})();
 
 			batch(() => {
-				setQuery(produce(q => {
-					q[Mode.Group] = ''
-					q[Mode.Search] = ''
-				}))
+				setQuery(
+					produce((q) => {
+						q[Mode.Group] = "";
+						q[Mode.Search] = "";
+					}),
+				);
 
-				setMode(Mode.Search)
-				logger.debug('mode: ', { mode: mode() })
-			})
+				setMode(Mode.Search);
+				logger.debug("mode: ", { mode: mode() });
+			});
 		}
 	}
 
 	function searchActions(event: KeyboardEvent) {
 		if (mode() !== Mode.Search) {
-			return
+			return;
 		}
 
-		if (event.ctrlKey && event.key === 'x') {
-			event.preventDefault()
-			setMode(v => {
+		if (event.ctrlKey && event.key === "x") {
+			event.preventDefault();
+			setMode((v) => {
 				if (v === Mode.Group) {
-					return Mode.Search
+					return Mode.Search;
 				}
-				return Mode.Group
-			})
+				return Mode.Group;
+			});
 		}
 
-		if (event.ctrlKey && event.key === 'd') {
-			event.preventDefault()
-			const tabId = matchedTabs().list[activeSelection()]
-			void (async () => {
-				await browser.tabs.remove(tabId)
-			})()
-			setQuery(produce(q => {
-				q[Mode.Search] = ''
-			}))
+		if (event.ctrlKey && event.key === "d") {
+			event.preventDefault();
+			const tabId = matchedTabs().list[activeSelection()];
+			(async () => {
+				await browser.tabs.remove(tabId);
+			})();
+			setQuery(
+				produce((q) => {
+					q[Mode.Search] = "";
+				}),
+			);
 		}
 
-		if (event.ctrlKey && event.key === 'm') {
-			event.preventDefault()
-			const tabId = matchedTabs().list[activeSelection()]
-			void (async () => {
-				await browserApi.toggleMute(tabId)
-			})()
-			// setQuery(produce(q => {
-			// q[Mode.Search] = ''
-			// }))
+		if (event.ctrlKey && event.key === "m") {
+			event.preventDefault();
+			const tabId = matchedTabs().list[activeSelection()];
+			(async () => {
+				await browserApi.toggleMute(tabId);
+			})();
 		}
 
-		if (event.ctrlKey && event.key === 'p') {
-			event.preventDefault()
-			const tabId = matchedTabs().list[activeSelection()]
-			void (async () => {
-				await browserApi.togglePin(tabId)
-			})()
+		if (event.ctrlKey && event.key === "p") {
+			event.preventDefault();
+			const tabId = matchedTabs().list[activeSelection()];
+			(async () => {
+				await browserApi.togglePin(tabId);
+			})();
 			// setQuery(produce(q => {
 			// q[Mode.Search] = ''
 			// }))
@@ -217,230 +274,260 @@ const App = () => {
 
 	function musicActions(event: KeyboardEvent) {
 		if (mode() !== Mode.Action) {
-			return
+			return;
 		}
 
-		if (event.code === 'Space' || event.code === 'ShiftLeft') {
-			event.preventDefault()
-			const tabId = matchedTabs().list[activeSelection()]
-			void (async () => {
-				await musicControls.playOrPauseSong(tabId)
-			})()
-			logger.info('playing or pausing song', { tabId })
+		if (event.code === "Space" || event.code === "ShiftLeft") {
+			event.preventDefault();
+			const tabId = matchedTabs().list[activeSelection()];
+			(async () => {
+				await musicControls.playOrPauseSong(tabId);
+			})();
+			logger.info("playing or pausing song", { tabId });
 		}
 
-		if (event.code === 'ArrowRight') {
-			event.preventDefault()
-			const tabId = matchedTabs().list[activeSelection()]
-			void (async () => {
-				const songInfo = await musicControls.nextSong(tabId)
-				logger.info('playing next song', { title: songInfo?.title })
-			})()
+		if (event.code === "ArrowRight") {
+			event.preventDefault();
+			const tabId = matchedTabs().list[activeSelection()];
+			(async () => {
+				const songInfo = await musicControls.nextSong(tabId);
+				logger.info("playing next song", { title: songInfo?.title });
+			})();
 		}
 
-		if (event.code === 'ArrowLeft') {
-			event.preventDefault()
-			const tabId = matchedTabs().list[activeSelection()]
-			void (async () => {
-				const songInfo = await musicControls.prevSong(tabId)
-				logger.info('playing prev song', { title: songInfo?.title })
-			})()
+		if (event.code === "ArrowLeft") {
+			event.preventDefault();
+			const tabId = matchedTabs().list[activeSelection()];
+			(async () => {
+				const songInfo = await musicControls.prevSong(tabId);
+				logger.info("playing prev song", { title: songInfo?.title });
+			})();
 		}
 	}
 
 	function onKeyDown(event: KeyboardEvent) {
 		// mode switching
-		if (event.key === 'Escape') {
-			event.preventDefault()
-			setMode(Mode.Search)
-			return
+		if (event.key === "Escape") {
+			event.preventDefault();
+			setMode(Mode.Search);
+			return;
 		}
 
-		if (event.key === 'Tab') {
-			event.preventDefault()
-			setMode(v => {
+		if (event.key === "Tab") {
+			event.preventDefault();
+			setMode((v) => {
 				if (v >= Mode.Group) {
-					return Mode.Search
+					return Mode.Search;
 				}
-				return v + 1
-			})
-			return
+				return v + 1;
+			});
+			return;
 		}
 
-		if (event.key === 'ArrowUp') {
-			setActiveSelection((idx) => idx - 1)
-			return
+		if (event.key === "ArrowUp") {
+			setActiveSelection((idx) => idx - 1);
+			return;
 		}
 
-		if (event.key === 'ArrowDown') {
-			setActiveSelection((idx) => idx + 1)
+		if (event.key === "ArrowDown") {
+			setActiveSelection((idx) => idx + 1);
 		}
 
-		searchActions(event)
-		groupAction(event)
-		musicActions(event)
+		searchActions(event);
+		groupAction(event);
+		musicActions(event);
 	}
 
 	createEffect(() => {
 		if (activeSelection() < 0) {
-			setActiveSelection(matchedTabs().list.length - 1)
+			setActiveSelection(matchedTabs().list.length - 1);
 		}
 		if (activeSelection() >= matchedTabs().list.length) {
-			setActiveSelection(0)
+			setActiveSelection(0);
 		}
-	})
+	});
 
 	createEffect((prevQuery) => {
 		if (prevQuery !== query[Mode.Search]) {
-			setActiveSelection(0)
+			setActiveSelection(0);
 		}
-	})
+	});
 
 	createEffect(() => {
-		if (mode() === Mode.Action && query[mode()].length === 2 && query[mode()].startsWith('m')) {
-			const mark = query[Mode.Action][1]
-			const tabId = matchedTabs().list[activeSelection()]
+		if (
+			mode() === Mode.Action &&
+			query[mode()].length === 2 &&
+			query[mode()].startsWith("m")
+		) {
+			const mark = query[Mode.Action][1];
+			const tabId = matchedTabs().list[activeSelection()];
 			if (tabId != null) {
 				batch(() => {
-					setQuery(produce(q => {
-						q[Mode.Action] = ''
-					}))
+					setQuery(
+						produce((q) => {
+							q[Mode.Action] = "";
+						}),
+					);
 					setMarks((m) => {
-						return { ...m, [mark]: tabId }
-					})
-					setMode(Mode.Search)
-				})
+						return { ...m, [mark]: tabId };
+					});
+					setMode(Mode.Search);
+				});
 			}
 		}
 
-		if (mode() === Mode.Action && query[mode()].length === 2 && query[mode()].startsWith('d')) {
-			const mark = query[Mode.Action][1]
-			const tabId = matchedTabs().list[activeSelection()]
+		if (
+			mode() === Mode.Action &&
+			query[mode()].length === 2 &&
+			query[mode()].startsWith("d")
+		) {
+			const mark = query[Mode.Action][1];
+			const tabId = matchedTabs().list[activeSelection()];
 			if (tabId != null) {
 				batch(() => {
-					setQuery(produce(q => {
-						q[Mode.Action] = ''
-					}))
+					setQuery(
+						produce((q) => {
+							q[Mode.Action] = "";
+						}),
+					);
 					setMarks((m) => {
-						delete m[mark]
-						return { ...m }
-					})
-					setMode(Mode.Search)
-				})
+						delete m[mark];
+						return { ...m };
+					});
+					setMode(Mode.Search);
+				});
 			}
 		}
-	})
+	});
 
-	let inputRef: Ref<any>
+	let inputRef: Ref<any>;
 	setInterval(() => {
 		// HACK: this is a hack to make sure that the input is always focused
-		if ((Boolean(inputRef)) && inputRef.current !== document.activeElement) {
-			inputRef.focus()
+		if (Boolean(inputRef) && inputRef.current !== document.activeElement) {
+			inputRef.focus();
 		}
-	})
+	});
 
-	return <PageRoot>
-		<div class="px-16 py-6 h-full flex-1 flex flex-col gap-3 dark:bg-slate-800">
-			<form
-				onKeyDown={onKeyDown}
-				onSubmit={(e) => {
-					e.preventDefault()
-					const tabId = matchedTabs().list[activeSelection()]
-					void (async () => {
-						await browser.tabs.update(tabId, { active: true })
-					})()
-					batch(() => {
-						setQuery(produce(q => {
-							q[mode()] = ''
-						}))
-					})
-				}}
-			>
-				<Switch
-					fallback={
-						<QueryTextField
-							ref={inputRef}
-							value={query[mode()]}
-							setValue={(v) => {
-								setQuery(produce(q => {
-									q[mode()] = v
-								}))
-							}}
-							placeholder={placeholderForMode(mode())}
-							class="rounded-l-md"
-						/>}
+	return (
+		<PageRoot>
+			<div class="px-16 py-6 h-full flex-1 flex flex-col gap-3 dark:bg-slate-800">
+				<form
+					onKeyDown={onKeyDown}
+					onSubmit={(e) => {
+						e.preventDefault();
+						const tabId = matchedTabs().list[activeSelection()];
+						(async () => {
+							await browser.tabs.update(tabId, { active: true });
+						})();
+						batch(() => {
+							setQuery(
+								produce((q) => {
+									q[mode()] = "";
+								}),
+							);
+						});
+					}}
 				>
-					<Match when={mode() === Mode.Action}>
-						<div class="flex flex-row">
-							<div class="relative flex">
-								<div class="bg-slate-700 pl-4 pr-1 flex items-center">
-									<div class="text-lg text-slate-500 font-bold scale-110 tracking-wide">Action</div>
-								</div>
-								<PowerlineIcon class="w-5 h-full fill-slate-700 dark:bg-slate-900" />
-							</div>
-
+					<Switch
+						fallback={
 							<QueryTextField
 								ref={inputRef}
 								value={query[mode()]}
 								setValue={(v) => {
-									setQuery(produce(q => {
-										q[mode()] = v
-									}))
+									setQuery(
+										produce((q) => {
+											q[mode()] = v;
+										}),
+									);
 								}}
 								placeholder={placeholderForMode(mode())}
+								class="rounded-l-md"
 							/>
-						</div>
-					</Match>
-
-					<Match when={mode() === Mode.Group}>
-						<div class="flex flex-row">
-							<div class="relative flex">
-								<div class="bg-slate-700 pl-4 pr-1 flex items-center">
-									<div class="text-lg text-slate-500 font-bold scale-110 tracking-wide">Group Filter</div>
+						}
+					>
+						<Match when={mode() === Mode.Action}>
+							<div class="flex flex-row">
+								<div class="relative flex">
+									<div class="bg-slate-700 pl-4 pr-1 flex items-center">
+										<div class="text-lg text-slate-500 font-bold scale-110 tracking-wide">
+											Action
+										</div>
+									</div>
+									<PowerlineIcon class="w-5 h-full fill-slate-700 dark:bg-slate-900" />
 								</div>
-								<PowerlineIcon class="w-5 h-full fill-slate-700 dark:bg-slate-900" />
+
+								<QueryTextField
+									ref={inputRef}
+									value={query[mode()]}
+									setValue={(v) => {
+										setQuery(
+											produce((q) => {
+												q[mode()] = v;
+											}),
+										);
+									}}
+									placeholder={placeholderForMode(mode())}
+								/>
 							</div>
+						</Match>
 
-							<QueryTextField
-								ref={inputRef}
-								value={query[mode()]}
-								setValue={(v) => {
-									setQuery(produce(q => {
-										q[mode()] = v
-									}))
-								}}
-								placeholder={placeholderForMode(mode())}
-							/>
-						</div>
-					</Match>
-				</Switch>
-			</form>
+						<Match when={mode() === Mode.Group}>
+							<div class="flex flex-row">
+								<div class="relative flex">
+									<div class="bg-slate-700 pl-4 pr-1 flex items-center">
+										<div class="text-lg text-slate-500 font-bold scale-110 tracking-wide">
+											Group Filter
+										</div>
+									</div>
+									<PowerlineIcon class="w-5 h-full fill-slate-700 dark:bg-slate-900" />
+								</div>
 
-			<div class="text-medium text-2xl dark:text-gray-200">Tabs ({matchedTabs().list.length || 0}/{tabs().list.length})</div>
+								<QueryTextField
+									ref={inputRef}
+									value={query[mode()]}
+									setValue={(v) => {
+										setQuery(
+											produce((q) => {
+												q[mode()] = v;
+											}),
+										);
+									}}
+									placeholder={placeholderForMode(mode())}
+								/>
+							</div>
+						</Match>
+					</Switch>
+				</form>
 
-			<div class="overflow-x-visible flex-1 relative">
-				<div class="overflow-y-auto flex flex-col gap-2">
-					<For each={matchedTabs().list}>
-						{(tabId, idx) => {
-							return <BrowserTab
-								index={idx() + 1}
-								vimMark={tabToMarks()?.[tabId]}
-								tabInfo={tabs().data[tabId]}
-								isSelected={activeSelection() === idx()}
-								matches={matchedTabs()?.matches[tabId]}
-								onClick={() => {
-									void (async () => {
-										await browser.tabs.update(tabId, { active: true })
-									})()
-								}}
-							/>
-						}}
-					</For >
+				<div class="text-medium text-2xl dark:text-gray-200">
+					Tabs ({matchedTabs().list.length || 0}/{tabs().list.length})
+				</div>
+
+				<div class="overflow-x-visible flex-1 relative">
+					<div class="overflow-y-auto flex flex-col gap-2">
+						<For each={matchedTabs().list}>
+							{(tabId, idx) => {
+								return (
+									<BrowserTab
+										index={idx() + 1}
+										vimMark={tabToMarks()?.[tabId]}
+										tabInfo={tabs().data[tabId]}
+										isSelected={activeSelection() === idx()}
+										matches={matchedTabs()?.matches[tabId]}
+										onClick={() => {
+											(async () => {
+												await browser.tabs.update(tabId, { active: true });
+											})();
+										}}
+									/>
+								);
+							}}
+						</For>
+					</div>
 				</div>
 			</div>
-		</div>
+		</PageRoot>
+	);
+};
 
-	</PageRoot >
-}
-
-export default App
+export default App;

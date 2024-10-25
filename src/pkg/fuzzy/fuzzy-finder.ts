@@ -1,12 +1,5 @@
 import Fuse from 'fuse.js'
 
-// function proxyToObject(proxy: unknown) {
-//   return JSON.parse(JSON.stringify(proxy))
-// }
-//
-// interface Result {
-// }
-
 interface Opts {
 	sortPredicate?: <T>(a: T, b: T) => number
 	searchOnKeys?: string[]
