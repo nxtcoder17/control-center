@@ -1,11 +1,11 @@
-import { type Component } from 'solid-js'
+import { type Component } from "solid-js";
 
 interface PageRootAttrs {
-	class?: string
-	debug?: boolean
-	'overflow-y'?: boolean
-	'overflow-x'?: boolean
-	children?: any
+	class?: string;
+	debug?: boolean;
+	"overflow-y"?: boolean;
+	"overflow-x"?: boolean;
+	children?: any;
 }
 
 /*
@@ -24,25 +24,31 @@ the main ingredient is
 */
 
 export const PageRoot: Component<PageRootAttrs> = (props) => {
-	return <div class={`h-screen overflow-hidden ${props.class ?? ''}`}
-		classList={{
-			'border-8 border-green-800': props.debug,
-			'overflow-y-auto': props['overflow-y'],
-			'overflow-x-auto': props['overflow-x'],
-		}}
-	>
-		{props.children}
-	</div >
-}
+	return (
+		<div
+			class={`min-h-screen relative h-max overflow-hidden ${props.class ?? ""}`}
+			classList={{
+				"border-8 border-green-800": props.debug,
+				"overflow-y-auto": props["overflow-y"],
+				"overflow-x-auto": props["overflow-x"],
+			}}
+		>
+			{props.children}
+		</div>
+	);
+};
 
 export const PageRoot2: Component<PageRootAttrs> = (props) => {
-	return <div class={`h-screen min-h-screen w-screen truncate overflow-auto flex flex-col ${props.class ?? ''}`}
-		classList={{
-			'border-8 border-green-800': props.debug,
-			'overflow-y-auto': props['overflow-y'],
-			'overflow-x-auto': props['overflow-x'],
-		}}
-	>
-		{props.children}
-	</div>
-}
+	return (
+		<div
+			class={`h-screen min-h-screen w-screen truncate overflow-auto flex flex-col ${props.class ?? ""}`}
+			classList={{
+				"border-8 border-green-800": props.debug,
+				"overflow-y-auto": props["overflow-y"],
+				"overflow-x-auto": props["overflow-x"],
+			}}
+		>
+			{props.children}
+		</div>
+	);
+};

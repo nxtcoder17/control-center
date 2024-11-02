@@ -66,6 +66,14 @@
 								"formats": ["camelCase", "PascalCase", "CONSTANT_CASE"]
 							},
 							{
+								"selector": {
+									"kind": "const",
+									"scope": "global"
+								},
+								"match": "__(.+)__|_SPECIAL_|(.+)",
+								"formats": ["CONSTANT_CASE"]
+							},
+							{
 								"selector": { "kind": "function" },
 								"match": "_?([^_]*)_?",
 								"formats": ["camelCase", "PascalCase", "CONSTANT_CASE"]

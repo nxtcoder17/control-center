@@ -23,7 +23,7 @@ import { browserApi } from "./lib/webext-apis/browser-api";
 
 export type MatchedTabs = Tabs & { matches: Record<number, MatchAttrs[]> };
 
-export const DEFAULT_EMPTY_MATCHED_TABS: MatchedTabs = {
+export const defaultEmptyMatchedTabs: MatchedTabs = {
 	...DEFAULT_EMPTY_TABS,
 	matches: {} satisfies Record<number, MatchAttrs[]>,
 };
@@ -33,14 +33,12 @@ interface HlChar {
 	hl: boolean;
 }
 
-// interface MatchAttrs { key: string, value: string, indices?: number[][], chunks?: HlChar[] }
 interface MatchAttrs {
 	title: HlChar[];
 	url?: HlChar[];
 }
 
-// const DEFAULT_MATCH_ATTRS: MatchAttrs = { key: '', value: '', indices: [] as number[][], chunks: [] as HlChar[] }
-const DEFAULT_MATCH_ATTRS: MatchAttrs = {
+const defaultMatchAttrs: MatchAttrs = {
 	title: [] as HlChar[],
 	url: [] as HlChar[],
 };
@@ -66,6 +64,8 @@ function placeholderForMode(m: Mode): string {
 			return "Jumps to Marks";
 	}
 }
+
+const FEATURE_HIGHLIGHT_MATCHES = false;
 
 const App = () => {
 	const tabs = withTabs();
@@ -153,35 +153,39 @@ const App = () => {
 		});
 
 		if (m == null || m?.length === 0) {
-			return DEFAULT_EMPTY_MATCHED_TABS;
+			return defaultEmptyMatchedTabs;
 		}
 
 		return m.reduce((acc, curr) => {
 			const matches = curr.matches?.map((item) => {
-				return {};
-				// const d = {} as MatchAttrs;
-				// if (item.key === "title") {
-				// 	d.title = item.value.split("").map((char, index) => {
-				// 		return {
-				// 			char,
-				// 			hl: item.indices?.some(
-				// 					(idx: number) => idx <= index && index <= idx,
-				// 				) ?? false,
-				// 		};
-				// 	});
-				// }
-				//
-				// if (item.key === "url") {
-				// 	d.url = item.value.split("").map((char, index) => {
-				// 		return {
-				// 			char,
-				// 			hl:
-				// 				item.indices?.some(
-				// 					(idx: number) => idx <= index && index <= idx,
-				// 				) ?? false,
-				// 		};
-				// 	});
-				// }
+				if (!FEATURE_HIGHLIGHT_MATCHES) {
+					return {};
+				}
+
+				const d = {} as MatchAttrs;
+				if (item.key === "title") {
+					d.title = item.value.split("").map((char, index) => {
+						return {
+							char,
+							hl:
+								item.indices?.some(
+									(idx: number) => idx <= index && index <= idx,
+								) ?? false,
+						};
+					});
+				}
+
+				if (item.key === "url") {
+					d.url = item.value.split("").map((char, index) => {
+						return {
+							char,
+							hl:
+								item.indices?.some(
+									(idx: number) => idx <= index && index <= idx,
+								) ?? false,
+						};
+					});
+				}
 			});
 
 			return {
@@ -189,10 +193,10 @@ const App = () => {
 				data: { ...acc.data, [Number(curr.item.id)]: curr.item },
 				matches: {
 					...acc.matches,
-					[Number(curr.item.id)]: matches ?? [DEFAULT_MATCH_ATTRS],
+					[Number(curr.item.id)]: matches ?? [defaultMatchAttrs],
 				},
 			};
-		}, DEFAULT_EMPTY_MATCHED_TABS);
+		}, defaultEmptyMatchedTabs);
 	};
 
 	const [activeSelection, setActiveSelection] = createSignal(0);
@@ -410,52 +414,29 @@ const App = () => {
 
 	return (
 		<PageRoot>
-			<div class="px-16 py-6 h-full flex-1 flex flex-col gap-3 dark:bg-slate-800">
-				<form
-					onKeyDown={onKeyDown}
-					onSubmit={(e) => {
-						e.preventDefault();
-						const tabId = matchedTabs().list[activeSelection()];
-						(async () => {
-							await browser.tabs.update(tabId, { active: true });
-						})();
-						batch(() => {
-							setQuery(
-								produce((q) => {
-									q[mode()] = "";
-								}),
-							);
-						});
-					}}
-				>
-					<Switch
-						fallback={
-							<QueryTextField
-								ref={inputRef}
-								value={query[mode()]}
-								setValue={(v) => {
-									setQuery(
-										produce((q) => {
-											q[mode()] = v;
-										}),
-									);
-								}}
-								placeholder={placeholderForMode(mode())}
-								class="rounded-l-md"
-							/>
-						}
+			<div class="px-16 py-8 min-h-screen flex-1 flex flex-col gap-3 dark:bg-slate-800">
+				<div class="flex flex-row gap-4">
+					<form
+						// class="fixed left-16 right-20 bg-red-200"
+						class="flex-1 bg-slate-100 dark:bg-slate-900 rounded-r-md"
+						onKeyDown={onKeyDown}
+						onSubmit={(e) => {
+							e.preventDefault();
+							const tabId = matchedTabs().list[activeSelection()];
+							(async () => {
+								await browser.tabs.update(tabId, { active: true });
+							})();
+							batch(() => {
+								setQuery(
+									produce((q) => {
+										q[mode()] = "";
+									}),
+								);
+							});
+						}}
 					>
-						<Match when={mode() === Mode.Action}>
-							<div class="flex flex-row">
-								<div class="relative flex">
-									<div class="bg-slate-700 pl-4 pr-1 flex items-center">
-										<div class="text-lg text-slate-500 font-bold scale-110 tracking-wide">
-											Action
-										</div>
-									</div>
-									<PowerlineIcon class="w-5 h-full fill-slate-700 dark:bg-slate-900" />
-								</div>
-
+						<Switch
+							fallback={
 								<QueryTextField
 									ref={inputRef}
 									value={query[mode()]}
@@ -467,43 +448,70 @@ const App = () => {
 										);
 									}}
 									placeholder={placeholderForMode(mode())}
+									class="rounded-l-md"
 								/>
-							</div>
-						</Match>
-
-						<Match when={mode() === Mode.Group}>
-							<div class="flex flex-row">
-								<div class="relative flex">
-									<div class="bg-slate-700 pl-4 pr-1 flex items-center">
-										<div class="text-lg text-slate-500 font-bold scale-110 tracking-wide">
-											Group Filter
+							}
+						>
+							<Match when={mode() === Mode.Action}>
+								<div class="flex flex-row">
+									<div class="relative flex">
+										<div class="bg-slate-700 pl-4 pr-1 flex items-center">
+											<div class="text-lg text-slate-500 font-bold scale-110 tracking-wide">
+												Action
+											</div>
 										</div>
+										<PowerlineIcon class="w-5 h-full fill-slate-700 dark:bg-slate-900" />
 									</div>
-									<PowerlineIcon class="w-5 h-full fill-slate-700 dark:bg-slate-900" />
+
+									<QueryTextField
+										ref={inputRef}
+										value={query[mode()]}
+										setValue={(v) => {
+											setQuery(
+												produce((q) => {
+													q[mode()] = v;
+												}),
+											);
+										}}
+										placeholder={placeholderForMode(mode())}
+									/>
 								</div>
+							</Match>
 
-								<QueryTextField
-									ref={inputRef}
-									value={query[mode()]}
-									setValue={(v) => {
-										setQuery(
-											produce((q) => {
-												q[mode()] = v;
-											}),
-										);
-									}}
-									placeholder={placeholderForMode(mode())}
-								/>
-							</div>
-						</Match>
-					</Switch>
-				</form>
+							<Match when={mode() === Mode.Group}>
+								<div class="flex flex-row">
+									<div class="relative flex">
+										<div class="bg-slate-700 pl-4 pr-1 flex items-center">
+											<div class="text-lg text-slate-500 font-bold scale-110 tracking-wide">
+												Group Filter
+											</div>
+										</div>
+										<PowerlineIcon class="w-5 h-full fill-slate-700 dark:bg-slate-900" />
+									</div>
 
-				<div class="text-medium text-2xl dark:text-gray-200">
-					Tabs ({matchedTabs().list.length || 0}/{tabs().list.length})
+									<QueryTextField
+										ref={inputRef}
+										value={query[mode()]}
+										setValue={(v) => {
+											setQuery(
+												produce((q) => {
+													q[mode()] = v;
+												}),
+											);
+										}}
+										placeholder={placeholderForMode(mode())}
+									/>
+								</div>
+							</Match>
+						</Switch>
+					</form>
+
+					<div class="text-medium text-2xl dark:text-gray-200">
+						Tabs ({matchedTabs().list.length || 0}/{tabs().list.length})
+					</div>
 				</div>
 
-				<div class="overflow-x-visible flex-1 relative">
+				<div class="flex-1 relative">
 					<div class="overflow-y-auto flex flex-col gap-2">
 						<For each={matchedTabs().list}>
 							{(tabId, idx) => {

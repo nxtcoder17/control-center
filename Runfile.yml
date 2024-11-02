@@ -1,0 +1,48 @@
+version: 3
+
+env:
+  VITE_BUILD_DIR_FIREFOX: ".dist/firefox"
+  VITE_BUILD_DIR_CHROME: ".dist/chrome"
+
+tasks:
+  firefox:build:
+    env:
+      VITE_BUILD_FOR_FIREFOX: "true"
+    cmd:
+      - pnpm build
+
+  firefox:dev:
+    env:
+      VITE_RUN_MODE: dev
+      VITE_BUILD_FOR_FIREFOX: true
+    cmd:
+      - fwatcher -x .dist -i .mjs -i .yml -i .nix sh -c 'rm -rf vite.config.ts.timestamp* && pnpm build'
+
+  chrome:dev:
+    env:
+      VITE_RUN_MODE: dev
+    cmd:
+      - fwatcher -x .dist -i .mjs -i .yml sh -c 'rm -rf vite.config.ts.timestamp* && pnpm build'
+
+  chrome:build:
+    env:
+      VITE_BUILD_FOR_CHROME: "true"
+    cmd:
+      - npm run build
+
+  firefox:zip:build:
+    cmd:
+      - run: firefox:build
+      - |+
+        pushd .dist/firefox
+        zip -r ../../control-center.zip *
+        popd
+
+  zip:source:
+    cmds:
+      - |+
+        dir_name=$(basename $PWD)
+        pushd ..
+        zip -r control-center-source.zip $dir_name -x "$dir_name/node_modules/*" -x "$dir_name/.dist/*" -x "$dir_name/.git/*" -x "$dir_name/.idea/*" -x "$dir_name/.direnv/*"
+        mv ./control-center-source.zip ./$dir_name/control-center-source.zip
+        popd
