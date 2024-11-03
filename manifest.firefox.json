@@ -1,63 +1,58 @@
 {
-  "manifest_version": 2,
-  "name": "Control Center",
-  "version": "1.3.4",
+	"manifest_version": 2,
+	"name": "Control Center",
+	"version": "1.3.4",
 
-  "description": "Control Center for Firefox",
+	"description": "Control Center for Firefox",
 
-  "icons": {
-    "48": "icons/logo-48.png"
-  },
+	"icons": {
+		"48": "icons/logo-48.png"
+	},
 
-  "content_scripts": [
-    {
-      "matches": ["*://open.spotify.com/*"],
-      "js": ["src/content-scripts/open.spotify.com/player-controls.js"]
-    },
-    {
-      "matches": ["*://music.youtube.com/*"],
-      "js": ["src/content-scripts/music.youtube.com/player-controls.js"]
-    },
-    {
-      "matches": ["*://www.youtube.com/*"],
-      "js": [ "src/content-scripts/youtube.com/removes-youtube-shorts.js" ]
-    }
-  ],
+	"content_scripts": [
+		{
+			"matches": ["*://open.spotify.com/*"],
+			"js": ["src/content-scripts/open.spotify.com/player-controls.js"]
+		},
+		{
+			"matches": ["*://music.youtube.com/*"],
+			"js": ["src/content-scripts/music.youtube.com/player-controls.js"]
+		},
+		{
+			"matches": ["*://www.youtube.com/*"],
+			"js": ["src/content-scripts/youtube.com/removes-youtube-shorts.js"]
+		}
+	],
 
-  "background": {
-    "scripts": ["src/scripts/background.ts"]
-  },
+	"background": {
+		"scripts": ["src/scripts/background.ts"]
+	},
 
-  "options_ui": {
-    "page": "src/options.html"
-  },
+	"options_ui": {
+		"page": "src/options.html"
+	},
 
-  "permissions": [
-    "activeTab",
-    "storage",
-    "tabs",
-    "contextualIdentities"
-  ],
+	"permissions": ["activeTab", "storage", "tabs", "contextualIdentities"],
 
-  "commands": {
-    "control-center": {
-      "suggested_key": { 
-        "default": "Alt+J",
-        "mac": "Alt+J"
-      },
-      "description": "toggle control center tab"
-    }
-  },
+	"commands": {
+		"control-center": {
+			"suggested_key": {
+				"default": "Alt+J",
+				"mac": "Alt+J"
+			},
+			"description": "toggle control center tab"
+		}
+	},
 
-  "browser_specific_settings": {
-    "gecko": {
-      "id": "control-center@nxtcoder17.me",
-      "strict_min_version": "63.0"
-    }
-  },
+	"browser_specific_settings": {
+		"gecko": {
+			"id": "control-center@nxtcoder17.me",
+			"strict_min_version": "63.0"
+		}
+	},
 
-  "browser_action": {
-    "default_icon": "icons/logo-48.png",
-    "default_title": "Control Center"
-  }
+	"browser_action": {
+		"default_icon": "icons/logo-48.png",
+		"default_title": "Control Center"
+	}
 }

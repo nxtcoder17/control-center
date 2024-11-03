@@ -1,14 +1,58 @@
 import * as browser from "webextension-polyfill";
 
-async function getOptions() {
-	const key = "options";
-	const item = await browser.storage.local.get(key);
-	return item[key];
+const logger = {
+	debug: (...msg) => {
+		console.debug("[control-center: removes-youtube-shorts]", ...msg);
+	},
+	info: (...msg) => {
+		console.info("[control-center: removes-youtube-shorts]", ...msg);
+	},
+	error: (err, when) => {
+		console.error(
+			"[control-center: removes-youtube-shorts]",
+			err,
+			"when",
+			when,
+		);
+	},
+};
+
+logger.debug("loaded");
+
+async function getOption(key, defaultVal) {
+	try {
+		const item = await browser.storage.local.get(key);
+		if (item?.[key]) {
+			return item[key];
+		}
+		await browser.storage.local.set({ [key]: defaultVal });
+		return defaultVal;
+	} catch (err) {
+		logger.error(err, "setting/getting item from extension local storage");
+	}
 }
 
-console.log(
-	"[control-center:youtube.com] removing stuffs content script loaded",
+const shouldRemoveYTShorts = await getOption(
+	"scripts.youtube-shorts.remove",
+	true,
 );
+
+const defaultSelectors = [
+	"ytd-rich-section-renderer div#content", // as of Nov 3, 2024 [documented here](https://github.com/user-attachments/assets/1325c389-9dec-474e-a13c-45161f1ef8a1)
+];
+
+const userYTShortsSelectors = await getOption(
+	"scripts.youtube-shorts.css-selectors",
+	[],
+);
+
+const ytShortsSelectors = [...defaultSelectors, ...userYTShortsSelectors];
+
+if (shouldRemoveYTShorts) {
+	logger.info(
+		`should remove youtube shorts with selectors: ${ytShortsSelectors}`,
+	);
+}
 
 function observeAndAct(action) {
 	const observer = new MutationObserver(() => {
@@ -24,28 +68,20 @@ function observeAndAct(action) {
 }
 
 function removeFromDOM(selector) {
+	// FIXME: we are selecting all the elements again, and again, even though we have filtered it
 	const items = document.querySelectorAll(selector);
 	if (items.length > 0) {
-		// console.log('[control-center] found these youtube shorts, removing them', items)
+		logger.debug("found these youtube shorts, removing them", items);
 		items.forEach((item) => {
 			item.remove();
 		});
 	}
 }
 
-const opts = await getOptions();
 observeAndAct(() => {
-	opts.ytShortsSelectors.split("\n").forEach((selector) => {
-		removeFromDOM(selector);
+	ytShortsSelectors.forEach((selector) => {
+		if (selector) {
+			removeFromDOM(selector);
+		}
 	});
-	removeFromDOM(opts.ytShortsSelectors);
 });
-
-// observeAndAct(() => {
-// 	(async () => {
-// 		const opts = await getOptions();
-// 	})();
-//
-// 	// removeFromDOM("[is-shorts]");
-// 	// removeFromDOM("ytd-reel-shelf-renderer");
-// });
