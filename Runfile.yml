@@ -15,8 +15,14 @@ tasks:
     env:
       VITE_RUN_MODE: dev
       VITE_BUILD_FOR_FIREFOX: true
+    watch:
+      ignoreDirs:
+        - .dist
+      extensions:
+        - .js
     cmd:
-      - fwatcher -x .dist -i .mjs -i .yml -i .nix sh -c 'rm -rf vite.config.ts.timestamp* && pnpm build'
+      - rm -rf vite.config.ts.timestamp*
+      - pnpm build
 
   chrome:dev:
     env:
@@ -30,7 +36,7 @@ tasks:
     cmd:
       - npm run build
 
-  firefox:zip:build:
+  firefox:build:zip:
     cmd:
       - run: firefox:build
       - |+
@@ -39,7 +45,7 @@ tasks:
         popd
 
   zip:source:
-    cmds:
+    cmd:
       - |+
         dir_name=$(basename $PWD)
         pushd ..
