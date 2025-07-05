@@ -2,13 +2,11 @@
 import { render } from "solid-js/web";
 import "./index.css";
 import { OptionsPage } from "./options/page";
-import { LogLevel, newLogger } from "./pkg/logger";
+import { newLogger } from "./pkg/logger";
 
 const root = document.getElementById("root");
 
-globalThis.logger = newLogger(
-	import.meta.env.DEV ? LogLevel.DEBUG : LogLevel.INFO,
-);
+globalThis.logger = newLogger("control-center/options");
 
 if (import.meta.env.DEV && !(root instanceof HTMLElement)) {
 	throw new Error(

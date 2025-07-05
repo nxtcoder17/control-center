@@ -20,14 +20,14 @@ const FavIcon = (props: { favIconUrl: string; isGithub: boolean }) => {
 	);
 };
 
-interface HlChar {
-	char: string;
+export interface HlText {
+	text: string;
 	hl: boolean;
 }
 
-interface MatchAttrs {
-	title: HlChar[];
-	url?: HlChar[];
+export interface MatchAttrs {
+	title: HlText[];
+	url: HlText[];
 }
 
 interface BrowserTabAttrs {
@@ -36,7 +36,7 @@ interface BrowserTabAttrs {
 	vimMark?: string | null;
 	index: number;
 	tabInfo: browser.Tabs.Tab;
-	matches: MatchAttrs[];
+	matches: MatchAttrs;
 }
 
 export const BrowserTab: Component<BrowserTabAttrs> = (
@@ -61,7 +61,10 @@ export const BrowserTab: Component<BrowserTabAttrs> = (
 				tabId: props.tabInfo.id,
 			});
 		}
-		console.log("matches: ", props.tabInfo.url, props.matches);
+	});
+
+	createEffect(() => {
+		console.log("MATCHES", props.matches?.title, props?.matches?.title.length);
 	});
 
 	return (
@@ -73,6 +76,9 @@ export const BrowserTab: Component<BrowserTabAttrs> = (
 			}}
 			ref={ref}
 			onClick={() => {
+				props.onClick();
+			}}
+			onKeyPress={() => {
 				props.onClick();
 			}}
 		>
@@ -103,26 +109,27 @@ export const BrowserTab: Component<BrowserTabAttrs> = (
 			</div>
 
 			<div class="flex-initial text-lg w-2/3 truncate">
-				{props.tabInfo.title}
-				{/**/}
-				{/* <Switch> */}
-				{/* 	<Match when={props.matches && props?.matches[Number(props.tabInfo.id)]?.title}> */}
-				{/* 		<For each={props?.matches[Number(props.tabInfo.id)]?.title}> */}
-				{/* 			{hlchar => { */}
-				{/* 				return <span data-hl={hlchar.hl} classList={{ */}
-				{/* 					// 'text-yellow-800 scale-120 tracking-wide': props.matches?.some(match => match.key === 'title' && match.indices?.some(indices => indices[0] <= index() && index() <= indices[1])), */}
-				{/* 					'text-yellow-800 scale-120 tracking-wide': hlchar.hl, */}
-				{/* 				}}>{hlchar.char}</span> */}
-				{/* 			}} */}
-				{/* 		</For> */}
-				{/* 	</Match> */}
-				{/* 	<Match when={!props.matches?.[Number(props.tabInfo.id)]?.title}> */}
-				{/* 		<For each={(props.tabInfo.title ?? '').split('')}> */}
-				{/* 			{char => <span>{char}</span> } */}
-				{/* 		</For> */}
-				{/* 	</Match> */}
-				{/* </Switch> */}
+				{props?.matches?.title?.length > 0 ? (
+					<For each={props?.matches?.title}>
+						{(hltext) => {
+							return (
+								<span
+									data-hl={hltext.hl}
+									classList={{
+										// 'text-yellow-800 scale-120 tracking-wide': props.matches?.some(match => match.key === 'title' && match.indices?.some(indices => indices[0] <= index() && index() <= indices[1])),
+										"text-orange-400 scale-120 tracking-wide": hltext.hl,
+									}}
+								>
+									{hltext.text}
+								</span>
+							);
+						}}
+					</For>
+				) : (
+					props.tabInfo.title
+				)}
 			</div>
+
 			<div
 				class="flex-initial text-sm w-1/3 truncate"
 				classList={{
@@ -130,13 +137,27 @@ export const BrowserTab: Component<BrowserTabAttrs> = (
 					"dark:text-slate-500 text-slate-400": !props.isSelected,
 				}}
 			>
-				{props.tabInfo.url}
-				{/* {props.tabInfo.url?.split('?')[0].split('').map((char, index) => { */}
-				{/*	 return <span classList={{ */}
-				{/*	 'bg-yellow-100 text-yellow-900 scale-120 tracking-wide': props.matches?.some(match => match.key === 'url' && match.indices?.some(indices => indices[0] <= index && index <= indices[1])), */}
-				{/*	 }}>{char}</span> */}
-				{/* })} */}
+				{props?.matches?.url?.length > 0 ? (
+					<For each={props?.matches?.url}>
+						{(hltext) => {
+							return (
+								<span
+									data-hl={hltext.hl}
+									classList={{
+										// 'text-yellow-800 scale-120 tracking-wide': props.matches?.some(match => match.key === 'title' && match.indices?.some(indices => indices[0] <= index() && index() <= indices[1])),
+										"text-orange-400 scale-120 tracking-wide": hltext.hl,
+									}}
+								>
+									{hltext.text}
+								</span>
+							);
+						}}
+					</For>
+				) : (
+					props.tabInfo.url
+				)}
 			</div>
+
 			<div class="">
 				{props.tabInfo.pinned ? (
 					<TbPinned class="w-5 h-5" />

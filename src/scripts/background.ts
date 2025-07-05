@@ -1,78 +1,74 @@
-import * as browser from 'webextension-polyfill'
+import * as browser from "webextension-polyfill";
+import { browserApi } from "../lib/webext-apis/browser-api";
+import { newLogger } from "../pkg/logger";
 
-const url = browser.runtime.getURL('src/background.html')
+globalThis.logger = newLogger("control-center");
 
-async function listTabs() {
-	return await browser.tabs.query({
+logger.info("Loaded");
+
+const extensionTabURL = browser.runtime.getURL("src/background.html");
+
+async function findExtensionTab(): Promise<number> {
+	const t = await browser.tabs.query({
 		currentWindow: true,
 		pinned: true,
-		url,
-	})
-}
+		url: extensionTabURL,
+	});
 
-async function ensureExtensionTab(): Promise<number | undefined> {
-	const t = await listTabs()
 	if (t.length === 0) {
 		const extensionTab = await browser.tabs.create({
 			active: false,
-			url,
+			url: extensionTabURL,
 			pinned: true,
-		})
+		});
 
-		return extensionTab.id
+		return extensionTab.id;
 	}
 
-	return t[0].id
+	return t[0].id;
 }
 
-type TabId = number | undefined
+async function findPreviousTabID(): Promise<number> {
+	const tabs = await browser.tabs.query({ active: true });
 
-async function ensurePreviousTabId(tabId: TabId): Promise<number | undefined> {
-	const [currTab] = await browser.tabs.query({ active: true })
-
-	let gotoId = tabId
-	const tabs = await listTabs()
-	for (let i = 0; i < tabs.length; i++) {
-		if (tabs[i].id === tabId) {
-			return tabId
-		}
-		if (tabs[i].id === currTab.id) {
-			continue
-		}
-		gotoId = tabs[i].id
-	}
-
-	return gotoId
+	// INFO: #tabs won't be 0, as we are anyway creating a tab
+	return tabs.length >= 2 ? tabs[1].id : tabs[0].id;
 }
 
 async function init() {
-	const extensionTabId = await ensureExtensionTab()
-	let prevTabId: TabId
+	const extensionTabId = await findExtensionTab();
+	let prevTabID = -1;
 
-	// eslint-disable-next-line
-  const toggleTab = async () => {
-		const [currTab] = await browser.tabs.query({ active: true })
+	const toggleTab = async () => {
+		const [currTab] = await browser.tabs.query({ active: true });
 		// console.debug(`current tab id: ${currTab.id} extension tab id (${extensionTabId}) prev tab id: ${prevTabId}`)
 		if (currTab.id === extensionTabId) {
-			const gotoId = await ensurePreviousTabId(prevTabId)
-			await browser.tabs.update(gotoId, { active: true })
-			return
+			if (!(await browserApi.tabExists(prevTabID))) {
+				prevTabID = await findPreviousTabID();
+			}
+
+			logger.debug("prev tab ID", "tabID", prevTabID);
+
+			await browser.tabs.update(prevTabID, { active: true });
+			return;
 		}
 
-		prevTabId = currTab.id
+		prevTabID = currTab.id;
 		await browser.tabs.update(extensionTabId, {
 			active: true,
-			openerTabId: prevTabId,
-		})
-	}
+			openerTabId: prevTabID,
+		});
+	};
 
 	browser.commands.onCommand.addListener((command) => {
-		if (command === 'control-center') {
-			toggleTab().catch((err) => { throw err })
+		if (command === "control-center") {
+			toggleTab().catch((err) => {
+				throw err;
+			});
 		}
-	})
+	});
 }
 
 init().catch((err: Error) => {
-	logger.error(err)
-})
+	logger.error(err, "init | background.ts");
+});

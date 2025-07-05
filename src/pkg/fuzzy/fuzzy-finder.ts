@@ -1,15 +1,21 @@
-import Fuse from 'fuse.js'
+import Fuse from "fuse.js";
 
 interface Opts {
-	sortPredicate?: <T>(a: T, b: T) => number
-	searchOnKeys?: string[]
+	sortPredicate?: <T>(a: T, b: T) => number;
+	searchOnKeys?: string[];
 }
 
-export function fuzzyFind<T>(list: T[], query: string, opts?: Opts): Array<Fuse.FuseResult<T>> | null {
-	const sortPredicate = opts ? opts.sortPredicate : (a: any, b: any) => a.index - b.index
+export function fuzzyFind<T>(
+	list: T[],
+	query: string,
+	opts?: Opts,
+): Array<Fuse.FuseResult<T>> | null {
+	const sortPredicate = opts
+		? opts.sortPredicate
+		: (a: any, b: any) => a.index - b.index;
 
-	if (query === '') {
-		return null
+	if (query === "") {
+		return null;
 	}
 
 	const f = new Fuse(list, {
@@ -17,10 +23,10 @@ export function fuzzyFind<T>(list: T[], query: string, opts?: Opts): Array<Fuse.
 		includeScore: false,
 		includeMatches: true,
 		useExtendedSearch: true,
-	})
+	});
 
-	const results = f.search<T>(query)
-	return results
+	const results = f.search<T>(query);
+	return results;
 }
 
 // fuzzyFind([
