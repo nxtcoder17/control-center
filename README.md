@@ -1,7 +1,6 @@
 ## control-center 
-v1.0.0 is kind of ready
 
-this is how it looks as of now,
+This is how it looks as of now,
 ![screenshot](https://github.com/nxtcoder17/control-center/assets/22402557/896d8e0e-57dc-4254-a19b-c942530aab4a)
 
 Why do you need it ?
