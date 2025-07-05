@@ -1,73 +1,68 @@
-import { defineConfig } from "vite";
+import path from "node:path";
+import { defineConfig } from "rolldown-vite";
 import solidPlugin from "vite-plugin-solid";
-import firefoxManifest from "./manifest.firefox.json";
-import chromeManifest from "./manifest.chrome.json";
-import webExtension from "@samrum/vite-plugin-web-extension";
-import fs from "fs-extra";
-import path from "path";
-import { type InputPluginOption } from "rollup";
-
-function copyStaticFiles(options: StaticFileArg[]): InputPluginOption {
-	return {
-		name: "copy-static-files",
-		writeBundle: {
-			// sequential: true,
-			order: "post",
-			handler: async (args) => {
-				options.map(async (entry) => {
-					if (args.dir == null) {
-						throw new Error("args.dir is not defined");
-					}
-					let rDir = path.join(args.dir, entry.to);
-					const stat = await fs.lstat(entry.from);
-					if (stat.isDirectory()) {
-						rDir = path.join(args.dir, entry.to);
-						await fs.mkdirp(rDir);
-					}
-					console.log(
-						`copying [${entry.from}] to [${path.relative(path.dirname(args.dir), rDir)}]`,
-					);
-					await fs.copy(entry.from, rDir);
-				});
-			},
-		},
-	};
-}
-
-interface StaticFileArg {
-	from: string;
-	to: string;
-}
+// import chromeManifest from "./manifest.chrome.json" with { type: "json" };
+// import firefoxManifest from "./manifest.firefox.json" with { type: "json" };
+import tailwindcss from "@tailwindcss/vite";
+import { globSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
 function isFirefox() {
 	return process.env.VITE_BUILD_FOR_FIREFOX === "true";
 }
 
-export default defineConfig({
-	plugins: [
-		solidPlugin(),
-		webExtension({
-			manifest: isFirefox() ? firefoxManifest : chromeManifest,
+const inputs = Object.fromEntries(
+	[
+		"src/background.html",
+		"src/options.html",
+		"src/content-scripts/**/*.js",
+		"src/scripts/*",
+		// "icons/*",
+	]
+		.flatMap((g) => globSync(g))
+		.map((file) => {
+			// const rel = path.relative("./src", file);
+			// if (rel.startsWith("..")) {
+			// 	return [file, fileURLToPath(new URL(file, import.meta.url))];
+			// }
+			return [file, fileURLToPath(new URL(file, import.meta.url))];
 		}),
-	],
-	// base: '/dist',
+);
+
+export default defineConfig({
+	plugins: [solidPlugin(), tailwindcss()],
 	server: {
 		port: 3000,
 	},
 	build: {
 		target: "esnext",
+		sourcemap: process.env.VITE_RUN_MODE === "dev" ? "inline" : false,
 		outDir: isFirefox()
 			? process.env.VITE_BUILD_DIR_FIREFOX
 			: process.env.VITE_BUILD_DIR_CHROME,
 		rollupOptions: {
 			treeshake: true,
-			input: "src/background.html",
-			plugins: [
-				copyStaticFiles([
-					{ from: "./icons", to: "./icons" },
-					// { from: "./manifest.firefox.json", to: "./manifest.json" },
-				]),
-			],
+			input: inputs,
+			output: {
+				entryFileNames: (chunkInfo) => {
+					if (chunkInfo.name.endsWith(".js")) {
+						return "[name]";
+					}
+
+					if (chunkInfo.name.endsWith("ts")) {
+						return chunkInfo.name.replace(/.ts$/, ".js");
+					}
+					return "[name].js";
+				},
+				// entryFileNames: "[name].js",
+				// assetFileNames: (asset) => {
+				// 	// if (asset.originalFileName?.startsWith("icons/")) {
+				// 	// 	return "icons/[name][extname]";
+				// 	// }
+				// 	//
+				// 	return "assets/[name]-[hash][extname]";
+				// },
+			},
 		},
 	},
 });

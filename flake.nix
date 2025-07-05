@@ -50,17 +50,16 @@
             })
 
             # your packages here
-            go-task
+            # go-task
             zip
             jq
 
             # source version control
             git
-            pre-commit
+            # pre-commit
 
-            nodejs_20
+            nodejs-slim
             nodePackages.pnpm
-            nodePackages.npm
           ];
 
           shellHook = ''

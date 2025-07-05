@@ -10,38 +10,30 @@ import {
 } from "solid-js";
 import * as browser from "webextension-polyfill";
 import { PageRoot } from "./lib/components/page";
-import { BrowserTab } from "./lib/components/browser-tab";
+import {
+	BrowserTab,
+	type HlText,
+	type MatchAttrs,
+} from "./lib/components/browser-tab";
 import { PowerlineIcon } from "./lib/components/icons";
 import { fuzzyFind } from "./pkg/fuzzy/fuzzy-finder";
 import { createStore, produce } from "solid-js/store";
 import { musicControls } from "./lib/webext-apis/music-controls";
 import { withTabs } from "./lib/hooks/tabs";
 import { QueryTextField } from "./lib/components/query-text-field";
-import { useMarks } from "./lib/hooks/marks";
 import { type Tabs, DEFAULT_EMPTY_TABS } from "./lib/types";
 import { browserApi } from "./lib/webext-apis/browser-api";
+import { withMarks } from "./lib/hooks/marks";
 
-export type MatchedTabs = Tabs & { matches: Record<number, MatchAttrs[]> };
+export type MatchedTabs = Tabs & { matches: Record<number, MatchAttrs> };
 
-export const defaultEmptyMatchedTabs: MatchedTabs = {
-	...DEFAULT_EMPTY_TABS,
-	matches: {} satisfies Record<number, MatchAttrs[]>,
-};
-
-interface HlChar {
-	char: string;
-	hl: boolean;
+function defaultEmptyMatchedTabs(): MatchedTabs {
+	return {
+		list: [] as number[],
+		data: {} satisfies Record<number, browser.Tabs.Tab>,
+		matches: {} satisfies Record<number, MatchAttrs[]>,
+	};
 }
-
-interface MatchAttrs {
-	title: HlChar[];
-	url?: HlChar[];
-}
-
-const defaultMatchAttrs: MatchAttrs = {
-	title: [] as HlChar[],
-	url: [] as HlChar[],
-};
 
 export type TabToMarks = Record<number, string>;
 
@@ -69,8 +61,7 @@ const FEATURE_HIGHLIGHT_MATCHES = false;
 
 const App = () => {
 	const tabs = withTabs();
-
-	const [marks, setMarks] = useMarks();
+	const [marks, setMarks] = withMarks();
 
 	const tabToMarks: Accessor<TabToMarks> = () =>
 		Object.entries(marks())
@@ -78,8 +69,9 @@ const App = () => {
 				([_, tabId]) =>
 					!tabs().data[tabId]?.url?.startsWith("moz-extension://"),
 			)
-			.reduce((acc, [mark, tabId]) => {
-				return { ...acc, [tabId]: mark };
+			.reduce((acc, [mark, tabID]) => {
+				acc[tabID] = mark;
+				return acc;
 			}, {} satisfies TabToMarks);
 
 	const [query, setQuery] = createStore<string[]>(["", "", "", ""]);
@@ -131,11 +123,11 @@ const App = () => {
 			const x = {
 				list: tabIds,
 				data: tabIds.reduce((acc, curr) => {
-					return { ...acc, [curr]: tabs().data[curr] };
+					acc[curr] = tabs().data[curr];
+					return acc;
 				}, {}),
 				matches: {},
 			};
-			logger.info("matchedTabs", { x });
 			return x;
 		}
 
@@ -148,55 +140,79 @@ const App = () => {
 			};
 		}
 
-		const m = fuzzyFind(Object.values(tabs().data), query[Mode.Search], {
-			searchOnKeys: ["title", "url"],
-		});
+		const m = fuzzyFind(
+			Object.values(tabs().data).map((item) => ({
+				id: item.id,
+				title: item.title,
+				url: item.url,
+			})),
+			query[Mode.Search],
+			{
+				searchOnKeys: ["title", "url"],
+			},
+		);
 
 		if (m == null || m?.length === 0) {
-			return defaultEmptyMatchedTabs;
+			return defaultEmptyMatchedTabs();
 		}
 
+		// console.log("DEBUG | m", m);
+
 		return m.reduce((acc, curr) => {
-			const matches = curr.matches?.map((item) => {
-				if (!FEATURE_HIGHLIGHT_MATCHES) {
-					return {};
-				}
+			const title = curr.matches
+				?.filter((item) => item.key === "title")
+				.flatMap((item) => {
+					const titles: HlText[] = [];
+					let lastIdx = 0;
+					for (const idx of item.indices) {
+						if (idx[0] > lastIdx) {
+							titles.push({
+								text: item.value.slice(lastIdx, idx[0]),
+								hl: false,
+							});
+						}
+						titles.push({
+							text: item.value.slice(idx[0], idx[1] + 1),
+							hl: true,
+						});
+						lastIdx = idx[1] + 1;
+					}
+					if (lastIdx < item.value.length) {
+						titles.push({ text: item.value.slice(lastIdx), hl: false });
+					}
+					return titles;
+				});
 
-				const d = {} as MatchAttrs;
-				if (item.key === "title") {
-					d.title = item.value.split("").map((char, index) => {
-						return {
-							char,
-							hl:
-								item.indices?.some(
-									(idx: number) => idx <= index && index <= idx,
-								) ?? false,
-						};
-					});
-				}
+			const url = curr.matches
+				?.filter((item) => item.key === "url")
+				.flatMap((item) => {
+					const urlparts: HlText[] = [];
+					let lastIdx = 0;
+					for (const idx of item.indices) {
+						if (idx[0] > lastIdx) {
+							urlparts.push({
+								text: item.value.slice(lastIdx, idx[0]),
+								hl: false,
+							});
+						}
+						urlparts.push({
+							text: item.value.slice(idx[0], idx[1] + 1),
+							hl: true,
+						});
+						lastIdx = idx[1] + 1;
+					}
+					if (lastIdx < item.value.length) {
+						urlparts.push({ text: item.value.slice(lastIdx), hl: false });
+					}
+					return urlparts;
+				});
 
-				if (item.key === "url") {
-					d.url = item.value.split("").map((char, index) => {
-						return {
-							char,
-							hl:
-								item.indices?.some(
-									(idx: number) => idx <= index && index <= idx,
-								) ?? false,
-						};
-					});
-				}
-			});
+			acc.list.push(Number(curr.item.id));
+			acc.data[Number(curr.item.id)] = curr.item;
+			acc.matches[Number(curr.item.id)] = { title, url };
 
-			return {
-				list: [...acc.list, Number(curr.item.id)],
-				data: { ...acc.data, [Number(curr.item.id)]: curr.item },
-				matches: {
-					...acc.matches,
-					[Number(curr.item.id)]: matches ?? [defaultMatchAttrs],
-				},
-			};
-		}, defaultEmptyMatchedTabs);
+			return acc;
+		}, defaultEmptyMatchedTabs());
 	};
 
 	const [activeSelection, setActiveSelection] = createSignal(0);

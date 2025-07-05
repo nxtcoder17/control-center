@@ -10,6 +10,8 @@ tasks:
       VITE_BUILD_FOR_FIREFOX: "true"
     cmd:
       - pnpm build
+      - cp manifest.firefox.json $VITE_BUILD_DIR_FIREFOX/manifest.json
+      - cp -r icons $VITE_BUILD_DIR_FIREFOX
 
   firefox:dev:
     env:
@@ -20,9 +22,11 @@ tasks:
         - .dist
       extensions:
         - .js
+        - .ts
+        - .tsx
     cmd:
       - rm -rf vite.config.ts.timestamp*
-      - pnpm build
+      - run: firefox:build
 
   chrome:dev:
     env:
