@@ -21,7 +21,7 @@ const FavIcon = (props: { favIconUrl: string; isGithub: boolean }) => {
 };
 
 export interface HlText {
-	text: string;
+	text?: string;
 	hl: boolean;
 }
 

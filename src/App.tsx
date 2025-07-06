@@ -21,7 +21,7 @@ import { createStore, produce } from "solid-js/store";
 import { musicControls } from "./lib/webext-apis/music-controls";
 import { withTabs } from "./lib/hooks/tabs";
 import { QueryTextField } from "./lib/components/query-text-field";
-import { type Tabs, DEFAULT_EMPTY_TABS } from "./lib/types";
+import type { Tabs } from "./lib/types";
 import { browserApi } from "./lib/webext-apis/browser-api";
 import { withMarks } from "./lib/hooks/marks";
 
@@ -156,7 +156,7 @@ const App = () => {
 			return defaultEmptyMatchedTabs();
 		}
 
-		// console.log("DEBUG | m", m);
+		console.log("DEBUG | m", m);
 
 		return m.reduce((acc, curr) => {
 			const title = curr.matches
@@ -167,17 +167,17 @@ const App = () => {
 					for (const idx of item.indices) {
 						if (idx[0] > lastIdx) {
 							titles.push({
-								text: item.value.slice(lastIdx, idx[0]),
+								text: item.value?.slice(lastIdx, idx[0]),
 								hl: false,
 							});
 						}
 						titles.push({
-							text: item.value.slice(idx[0], idx[1] + 1),
+							text: item.value?.slice(idx[0], idx[1] + 1),
 							hl: true,
 						});
 						lastIdx = idx[1] + 1;
 					}
-					if (lastIdx < item.value.length) {
+					if (lastIdx < item.value?.length) {
 						titles.push({ text: item.value.slice(lastIdx), hl: false });
 					}
 					return titles;
