@@ -1,31 +1,23 @@
 {
-  "compilerOptions": {
-    "strict": false,
-    "target": "ESNext",
-    "module": "ESNext",
-    "moduleResolution": "node",
-    "allowSyntheticDefaultImports": true,
-    "esModuleInterop": true,
-    "jsx": "preserve",
-    "jsxImportSource": "solid-js",
-    "inlineSourceMap": true,
-    "types": ["vite/client"],
-    "noEmit": true,
-    "isolatedModules": true,
-    "resolveJsonModule": true,
-    "allowJs": true,
-    "checkJs": false,
-    "strictNullChecks": true,
-  },
-  "files": [
-    "src/global.d.ts",
-  ],
-  "include": [
-    "./src/**/*",
-    "./*.ts",
-  ],
-  "exclude": [
-    "node_modules",
-    "**/*.spec.ts"
-  ]
+	"compilerOptions": {
+		"strict": false,
+		"target": "ESNext",
+		"module": "ESNext",
+		"moduleResolution": "node",
+		"allowSyntheticDefaultImports": true,
+		"esModuleInterop": true,
+		"jsx": "preserve",
+		"jsxImportSource": "solid-js",
+		"inlineSourceMap": true,
+		"types": ["vite/client"],
+		"noEmit": true,
+		"isolatedModules": true,
+		"resolveJsonModule": true,
+		"allowJs": true,
+		"checkJs": false,
+		"strictNullChecks": true
+	},
+	"files": ["src/global.d.ts"],
+	"include": ["./src/**/*", "./*.ts"],
+	"exclude": ["node_modules", "**/*.spec.ts"]
 }

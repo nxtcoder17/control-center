@@ -25,7 +25,8 @@
 	],
 
 	"background": {
-		"scripts": ["src/scripts/background.ts"]
+		"scripts": ["src/scripts/background.js"],
+		"type": "module"
 	},
 
 	"options_ui": {
