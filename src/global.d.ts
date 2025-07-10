@@ -1,6 +1,6 @@
-import { type Logger } from './pkg/logger'
+import type { Logger } from "./pkg/logger";
 
 declare global {
-	// eslint-disable-next-line no-var
-	var logger: Logger
+	var logger: Logger;
+	var control_center_debug: boolean;
 }
