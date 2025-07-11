@@ -3,7 +3,6 @@ import { BrowserTab } from "./components/browser-tab";
 import { PowerlineIcon } from "../pkg/ui/components/icons";
 import { QueryTextField } from "./components/query-text-field";
 import { useTabStore, Mode, placeholderForMode } from "./stores/tab-store";
-import { PageLayout } from "./components/page-layout";
 
 const Page = () => {
 	const tabs = useTabStore();
@@ -17,71 +16,36 @@ const Page = () => {
 	});
 
 	return (
-		<PageLayout>
-			<div class="px-16 py-8 min-h-screen flex-1 flex flex-col gap-3 dark:bg-slate-800">
+		<div class="h-screen px-16 py-8 dark:bg-slate-800">
+			<div class="h-full flex flex-col gap-3">
 				<div class="flex flex-row gap-4">
 					<form
 						class="flex-1 bg-slate-100 dark:bg-slate-900 rounded-r-md"
 						onKeyDown={tabs.onKeyDown}
 						onSubmit={tabs.onSubmit}
 					>
-						<Switch
-							fallback={
-								<QueryTextField
-									ref={inputRef}
-									value={tabs.query[tabs.mode]}
-									setValue={(v) => {
-										tabs.setQuery(v);
-									}}
-									placeholder={placeholderForMode(tabs.mode)}
-									class="rounded-l-md"
-								/>
-							}
-						>
-							<Match when={tabs.mode === Mode.Action}>
-								<div class="flex flex-row">
-									<div class="relative flex">
-										<div class="bg-slate-300 dark:bg-slate-700 pl-4 pr-1 flex items-center">
-											<div class="text-lg text-slate-700 dark:text-slate-500 font-bold scale-110 tracking-wide">
-												Action
-											</div>
+						<div class="flex flex-row">
+							{tabs.mode !== Mode.Search && (
+								<div class="relative flex">
+									<div class="bg-slate-300 dark:bg-slate-700 pl-4 pr-1 flex items-center">
+										<div class="text-lg text-slate-700 dark:text-slate-500 font-bold scale-110 tracking-wide">
+											{tabs.mode === Mode.Action && "Action"}
+											{tabs.mode === Mode.Group && "Group"}
 										</div>
-										<PowerlineIcon class="w-5 h-full fill-slate-300 dark:fill-slate-700 dark:bg-slate-900" />
 									</div>
-
-									<QueryTextField
-										ref={inputRef}
-										value={tabs.query[tabs.mode]}
-										setValue={(v) => {
-											tabs.setQuery(v);
-										}}
-										placeholder={placeholderForMode(tabs.mode)}
-									/>
+									<PowerlineIcon class="w-5 h-full fill-slate-300 dark:fill-slate-700 dark:bg-slate-900" />
 								</div>
-							</Match>
+							)}
 
-							<Match when={tabs.mode === Mode.Group}>
-								<div class="flex flex-row">
-									<div class="relative flex">
-										<div class="bg-slate-300 dark:bg-slate-700 pl-4 pr-1 flex items-center">
-											<div class="text-lg text-slate-700 dark:text-slate-500 font-bold scale-110 tracking-wide">
-												Group Filter
-											</div>
-										</div>
-										<PowerlineIcon class="w-5 h-full fill-slate-300 dark:fill-slate-700 dark:bg-slate-900" />
-									</div>
-
-									<QueryTextField
-										ref={inputRef}
-										value={tabs.query[tabs.mode]}
-										setValue={(v) => {
-											tabs.setQuery(v);
-										}}
-										placeholder={placeholderForMode(tabs.mode)}
-									/>
-								</div>
-							</Match>
-						</Switch>
+							<QueryTextField
+								ref={inputRef}
+								value={tabs.query[tabs.mode]}
+								setValue={(v) => {
+									tabs.setQuery(v);
+								}}
+								placeholder={placeholderForMode(tabs.mode)}
+							/>
+						</div>
 					</form>
 
 					<div class="text-medium text-2xl dark:text-gray-200">
@@ -90,8 +54,8 @@ const Page = () => {
 					</div>
 				</div>
 
-				<div class="flex-1 relative">
-					<div class="overflow-y-auto flex flex-col gap-2">
+				<div class="flex-1 relative overflow-y-auto">
+					<div class="flex flex-col gap-2">
 						<For each={tabs.matchedTabs().list}>
 							{(tabId, idx) => {
 								return (
@@ -109,7 +73,7 @@ const Page = () => {
 					</div>
 				</div>
 			</div>
-		</PageLayout>
+		</div>
 	);
 };
 
