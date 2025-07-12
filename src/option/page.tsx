@@ -2,6 +2,7 @@
 import { createEffect, createResource, createSignal } from "solid-js";
 import { browserApi } from "../pkg/browser-api";
 import { produce } from "solid-js/store";
+import { OPT_YT_SHORTS_REMOVE } from "../constants/store-keys";
 // import { NxtSelect } from '../components/select';
 
 const THEME_LIGHT: string = "light";
@@ -39,6 +40,8 @@ export const OptionsPage = () => {
 		}
 		setOptions(opt);
 	});
+
+	const [removeYTShorts, setRemoveYTShorts] = createSignal(true);
 
 	return (
 		<form
@@ -90,69 +93,51 @@ export const OptionsPage = () => {
 				/>
 			</div>
 
-			<div class="flex gap-2 items-center">
-				<label for="block-youtube-shorts" class="w-80">
-					Block Youtube Shorts
-				</label>
+			<label for="block-youtube-shorts" class="w-80">
+				Block Youtube Shorts
+			</label>
 
-				{/* <select */}
-				{/* 	id="theme-picker" */}
-				{/* 	class="bg-gray-200 rounded-md checked:bg-green-500 border-none relative" */}
-				{/* 	onChange={(e) => { */}
-				{/* 		setOptions( */}
-				{/* 			produce((opt) => { */}
-				{/* 				opt.blockYoutubeShorts = e.target.value === "true"; */}
-				{/* 			}), */}
-				{/* 		); */}
-				{/* 	}} */}
-				{/* > */}
-				{/* 	<option value={"true"} selected={options().blockYoutubeShorts}> */}
-				{/* 		Yes */}
-				{/* 	</option> */}
-				{/* 	<option value={"false"} selected={!options().blockYoutubeShorts}> */}
-				{/* 		No */}
-				{/* 	</option> */}
-				{/* </select> */}
+			<select
+				id="theme-picker"
+				class="bg-gray-200 rounded-md checked:bg-green-500 border-none relative p-2"
+				onChange={(e) => {
+					setRemoveYTShorts(e.target.value === "true");
+					browserApi.localStore.set(
+						OPT_YT_SHORTS_REMOVE,
+						e.target.value === "true",
+					);
+				}}
+			>
+				<option value={"true"} selected={removeYTShorts()}>
+					Yes
+				</option>
+				<option value="false" selected={!removeYTShorts()}>
+					No
+				</option>
+			</select>
 
-				<textarea
-					id="yt-shorts-selectors"
-					class="bg-gray-200 rounded-md checked:bg-green-500 border-none"
-					rows={5}
-					placeholder="enter selectors one in each line"
-					value={options().ytShortsSelectors}
-					onInput={(e) => {
-						setOptions(
-							produce((opt) => {
-								opt.ytShortsSelectors = e.target.value;
-							}),
-						);
-					}}
-				/>
-			</div>
-
-			<div class="flex gap-2 items-center">
-				<label for="block-youtube-shorts" class="w-80">
-					Block Youtube Thumbnails
-				</label>
-				<select
-					id="theme-picker"
-					class="bg-gray-200 rounded-md checked:bg-green-500 border-none relative"
-					onChange={(e) => {
-						setOptions(
-							produce((opt) => {
-								opt.blockYoutubeThumbnails = e.target.value === "true";
-							}),
-						);
-					}}
-				>
-					<option value={"true"} selected={options().blockYoutubeThumbnails}>
-						Yes
-					</option>
-					<option value={"false"} selected={!options().blockYoutubeThumbnails}>
-						No
-					</option>
-				</select>
-			</div>
+			<label for="block-youtube-shorts" class="w-80">
+				Youtube Shorts Selectors
+			</label>
+			<textarea
+				id="yt-shorts-selectors"
+				class="bg-gray-200 rounded-md checked:bg-green-500 border-none"
+				rows={5}
+				placeholder="enter selectors one in each line"
+				value={options().ytShortsSelectors}
+				onInput={(e) => {
+					setOptions(
+						produce((opt) => {
+							opt.ytShortsSelectors = e.target.value;
+						}),
+					);
+					setRemoveYTShorts(e.target.value === "true");
+					browserApi.localStore.set(
+						OPT_YT_SHORTS_REMOVE,
+						e.target.value === "true",
+					);
+				}}
+			/>
 
 			<div class="flex gap-6">
 				<button

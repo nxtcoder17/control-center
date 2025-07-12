@@ -23,7 +23,7 @@ await Promise.all(
 				},
 				emptyOutDir: false,
 				rollupOptions: {
-					// external: ["webextension-polyfill"],
+					external: ["webextension-polyfill"],
 					input: {
 						[path.relative(
 							"src",
@@ -31,9 +31,9 @@ await Promise.all(
 						)]: path.resolve(item),
 					},
 					output: {
-						// globals: {
-						// 	"webextension-polyfill": isFirefox() ? "browser" : "chrome",
-						// },
+						globals: {
+							"webextension-polyfill": isFirefox() ? "browser" : "chrome",
+						},
 						format: "iife",
 						entryFileNames: "[name].js",
 					},
