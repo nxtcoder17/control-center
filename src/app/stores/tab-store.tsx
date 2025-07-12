@@ -5,17 +5,19 @@ import {
 	createEffect,
 	batch,
 	createMemo,
+	createSignal,
 } from "solid-js";
 import { createStore } from "solid-js/store";
 import * as browser from "webextension-polyfill";
 import { musicControls } from "../actions/music-controls";
 import { browserApi } from "../../pkg/browser-api";
 import { withTabs } from "../hooks/tabs";
-import { withMarks } from "../hooks/marks";
+import { type Marks, withMarks } from "../hooks/marks";
 import { fuzzyFind } from "../../pkg/fuzzy/fuzzy-finder";
 import type { Tab, Tabs } from "../hooks/tabs";
 import type { FuseResultMatch } from "fuse.js";
 import type { HLMatchMeta, HLText } from "./types";
+import * as perf from "../../pkg/perf";
 
 export enum Mode {
 	Search = 0,
@@ -48,19 +50,13 @@ interface TabStore {
 
 	// Computed values
 	tabs: () => Tabs;
-	marks: () => Record<string, number>;
-	tabToMarks: () => TabToMarks;
+	marks: () => Marks;
 	matchedTabs: () => MatchedTabs;
 
 	// Actions
 	setQuery: (q: string, mode?: Mode) => void;
 	setMode: (mode: Mode) => void;
 	setActiveSelection: (selection: number) => void;
-	setMarks: (
-		marks:
-			| Record<string, number>
-			| ((prev: Record<string, number>) => Record<string, number>),
-	) => void;
 
 	// Handlers
 	onKeyDown: (event: KeyboardEvent) => void;
@@ -82,23 +78,43 @@ function buildHighlightedText(item: FuseResultMatch): HLText[] {
 	const result: HLText[] = [];
 	let lastIdx = 0;
 
-	for (const idx of item.indices) {
+  const ranges: string[] = [];
+
+  const indexes = Array.from(item.indices).sort((a, b) => a[0] - b[0])
+
+	for (const idx of indexes) {
 		if (idx[0] > lastIdx) {
+		  ranges.push(`${lastIdx} - ${idx[0]}`)
+		  lastIdx = idx[0]
 			result.push({
 				text: item.value?.slice(lastIdx, idx[0]),
 				hl: false,
 			});
 		}
-		result.push({
-			text: item.value?.slice(idx[0], idx[1] + 1),
-			hl: true,
-		});
-		lastIdx = idx[1] + 1;
+
+		if (idx[0] >= lastIdx) {
+		  ranges.push(`${idx[0]} - ${idx[1]+1}`)
+		  result.push({
+			  text: item.value?.slice(idx[0], idx[1] + 1),
+			  hl: true,
+		  });
+		  lastIdx = idx[1] + 1;
+		}
+
+		// ranges.push(`${idx[0]} - ${idx[1]+1}`)
+		// result.push({
+		// 	text: item.value?.slice(idx[0], idx[1] + 1),
+		// 	hl: true,
+		// });
+		// lastIdx = idx[1] + 1;
 	}
 
 	if (item.value && lastIdx < item.value.length) {
+		ranges.push(`${lastIdx} - ${item.value.length}`)
 		result.push({ text: item.value.slice(lastIdx), hl: false });
 	}
+
+  console.log("item.value", item.value, "result", result, "ranges", ranges)
 
 	return result;
 }
@@ -107,14 +123,13 @@ function computeMatchedTabs(
 	mode: Mode,
 	query: string[],
 	tabs: () => Tabs,
-	tabToMarks: () => TabToMarks,
 ): MatchedTabs {
 	if (mode === Mode.Marks) {
-		const tabIDs = Object.keys(tabToMarks())
-			.map(Number)
-			.filter((tabId) => tabId in tabs().data);
+		const tabIDs = tabs().list.filter(
+			(tabID) => tabs().data[tabID].mark != null,
+		);
 
-		const data = tabIDs.reduce<Record<number, Tab>>((acc, curr) => {
+		const data = tabIDs.reduce((acc, curr) => {
 			acc[curr] = tabs().data[curr];
 			return acc;
 		}, {});
@@ -178,8 +193,24 @@ function computeMatchedTabs(
 }
 
 export const TabStoreProvider: ParentComponent = (props) => {
-	const tabs = withTabs();
-	const [marks, setMarks] = withMarks();
+	const [tabs, setTabs] = withTabs();
+	const [marks, { setMark, delMark }] = withMarks();
+
+	const [markToTab, setMarkToTab] = createSignal({});
+
+	createEffect(() => {
+		perf.count("effect/mark-setter");
+		for (const id of tabs().list) {
+			const url = tabs().data[id]?.url || "";
+			if (marks()?.urlToMark[url]) {
+				tabs().data[id].mark = marks().urlToMark[url];
+				setMarkToTab((m) => {
+					m[marks().urlToMark[url]] = id;
+					return m;
+				});
+			}
+		}
+	});
 
 	const initialState = {
 		query: ["", "", "", ""] as string[],
@@ -189,22 +220,11 @@ export const TabStoreProvider: ParentComponent = (props) => {
 
 	const [store, setStore] = createStore(initialState);
 
-	// Compute tabToMarks
-	const tabToMarks = createMemo(() => {
-		const marksEntries = Object.entries(marks());
-		const filtered = marksEntries.filter(
-			([_, tabId]) => !tabs().data[tabId]?.url?.startsWith("moz-extension://"),
-		);
-
-		return filtered.reduce<TabToMarks>((acc, [mark, tabID]) => {
-			acc[tabID] = mark;
-			return acc;
-		}, {});
-	});
-
 	// Compute matchedTabs
-	const matchedTabs = () =>
-		computeMatchedTabs(store.mode, store.query, tabs, tabToMarks);
+	const matchedTabs = createMemo(() => {
+		perf.count("memo/matched-tabs");
+		return computeMatchedTabs(store.mode, store.query, tabs);
+	});
 
 	// Build actions
 	const actions = {
@@ -213,7 +233,6 @@ export const TabStoreProvider: ParentComponent = (props) => {
 		setMode: (mode: Mode) => setStore("mode", mode),
 		setActiveSelection: (selection: number) =>
 			setStore("activeSelection", selection),
-		setMarks,
 	};
 
 	createEffect(() => {
@@ -255,11 +274,15 @@ export const TabStoreProvider: ParentComponent = (props) => {
 
 				// Jump to mark when accessed
 				if (q.length === 2 && q[0] === "`") {
-					const mark = q[1];
 					(async () => {
-						await browser.tabs.update(marks()[mark], { active: true });
-						actions.setQuery("");
+						await browser.tabs.update(markToTab()[q[1]], {
+							active: true,
+						});
 					})();
+					batch(() => {
+						actions.setQuery("", store.mode);
+						actions.setMode(Mode.Search);
+					});
 				}
 				break;
 			}
@@ -274,19 +297,27 @@ export const TabStoreProvider: ParentComponent = (props) => {
 				switch (command) {
 					case "m": // Create mark
 						batch(() => {
-							setMarks((m) => ({ ...m, [mark]: tabId }));
+							setMark(mark, matchedTabs().data[tabId].url || "");
+							setTabs(t => {
+							  t.data[tabId].mark = mark
+							  return t
+							})
+							actions.setQuery("");
+							actions.setQuery("", Mode.Search);
 							actions.setMode(Mode.Search);
 						});
 						break;
 
 					case "d": // Delete mark
 						batch(() => {
+							delMark(mark);
+							setTabs(t => {
+							  delete t.data[markToTab()[mark]]?.mark
+							  return t
+							})
+
 							actions.setQuery("");
-							setMarks((m) => {
-								const copy = { ...m };
-								delete copy[mark];
-								return copy;
-							});
+							actions.setQuery("", Mode.Search);
 							actions.setMode(Mode.Search);
 						});
 						break;
@@ -474,7 +505,6 @@ export const TabStoreProvider: ParentComponent = (props) => {
 
 		tabs,
 		marks,
-		tabToMarks,
 		matchedTabs,
 
 		...actions,

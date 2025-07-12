@@ -31,6 +31,7 @@ const Page = () => {
 										<div class="text-lg text-slate-700 dark:text-slate-500 font-bold scale-110 tracking-wide">
 											{tabs.mode === Mode.Action && "Action"}
 											{tabs.mode === Mode.Group && "Group"}
+											{tabs.mode === Mode.Marks && "Marks"}
 										</div>
 									</div>
 									<PowerlineIcon class="w-5 h-full fill-slate-300 dark:fill-slate-700 dark:bg-slate-900" />
@@ -62,7 +63,7 @@ const Page = () => {
 								return (
 									<BrowserTab
 										idx={tabs.tabs().data[tabId].idx}
-										vimMark={tabs.tabToMarks()?.[tabId]}
+										vimMark={tabs.tabs().data[tabId].mark}
 										tabInfo={tabs.tabs().data[tabId]}
 										isSelected={tabs.activeSelection === idx()}
 										matches={tabs.matchedTabs().matches[tabId]}

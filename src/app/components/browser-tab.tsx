@@ -38,7 +38,7 @@ const HLTextRenderer = (props: { texts: HLText[] }) => {
 					<span
 						data-hl={t.hl}
 						classList={{
-							"bg-yellow-300 scale-[150%] dark:text-orange-400 scale-120 tracking-wide":
+							"text-orange-500 scale-[150%] dark:text-sky-500 scale-120 tracking-wide":
 								t.hl,
 						}}
 					>

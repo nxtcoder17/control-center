@@ -1,12 +1,16 @@
 import { browserApi } from "../../pkg/browser-api";
 import * as browser from "webextension-polyfill";
-import { createResource } from "solid-js";
+import { createResource, Setter, type Accessor } from "solid-js";
+import * as perf from "../../pkg/perf";
 
 function isExtensionTab(tab: browser.Tabs.Tab): boolean {
 	return tab.url?.startsWith(browser.runtime.getURL("")) ?? false;
 }
 
-export type Tab = browser.Tabs.Tab & { idx: number };
+export type Tab = browser.Tabs.Tab & {
+	idx: number;
+	mark?: string;
+};
 
 export interface Tabs {
 	list: number[];
@@ -22,6 +26,7 @@ let tabIdx = 0;
 
 const fetchListOfTabs = async (): Promise<Tabs> => {
 	const t = await browserApi.listAllTabs();
+	perf.count("fetcher/list-of-tabs");
 
 	logger.debug("tabs/all", "list", t);
 
@@ -50,13 +55,14 @@ const fetchListOfTabs = async (): Promise<Tabs> => {
 	return t2;
 };
 
-export const withTabs = () => {
+export const withTabs = (): [Accessor<Tabs>, Setter<Tabs>] => {
 	const [tabs, { mutate }] = createResource<Tabs>(fetchListOfTabs, {
 		initialValue: { list: [], data: {} },
 		name: "fetching list of tabs",
 	});
 
-	const setTabs = (f: (argTabs: Tabs) => void) => {
+	const setTabs = (f: (old: Tabs) => void) => {
+		perf.count("resource/tabs/set");
 		mutate((t) => {
 			f(t);
 			return { ...t };
@@ -88,5 +94,5 @@ export const withTabs = () => {
 		});
 	});
 
-	return tabs;
+	return [tabs, setTabs];
 };
