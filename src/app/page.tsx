@@ -16,9 +16,9 @@ const Page = () => {
 	});
 
 	return (
-		<div class="h-screen px-16 py-8 dark:bg-slate-800">
+		<div class="h-screen py-8 dark:bg-slate-800">
 			<div class="h-full flex flex-col gap-3">
-				<div class="flex flex-row gap-4">
+				<div class="px-16 flex flex-row gap-4">
 					<form
 						class="flex-1 bg-slate-100 dark:bg-slate-900 rounded-r-md"
 						onKeyDown={tabs.onKeyDown}
@@ -41,6 +41,7 @@ const Page = () => {
 								ref={inputRef}
 								value={tabs.query[tabs.mode]}
 								setValue={(v) => {
+									console.log("HERE", v);
 									tabs.setQuery(v);
 								}}
 								placeholder={placeholderForMode(tabs.mode)}
@@ -54,7 +55,7 @@ const Page = () => {
 					</div>
 				</div>
 
-				<div class="flex-1 relative overflow-y-auto">
+				<div class="px-16 flex-1 relative rounded-lg overflow-y-auto">
 					<div class="flex flex-col gap-2">
 						<For each={tabs.matchedTabs().list}>
 							{(tabId, idx) => {

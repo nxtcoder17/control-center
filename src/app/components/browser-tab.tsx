@@ -76,7 +76,7 @@ export const BrowserTab: Component<BrowserTabAttrs> = (
 
 	return (
 		<div
-			class="flex-1 flex flex-row gap-3 tracking-wide text-gray-700 px-2 py-1 cursor-pointer transition-all items-center overflow-y-auto overflow-x-auto"
+			class="flex-1 flex flex-row gap-3 tracking-wide text-gray-700 px-2 py-1 cursor-pointer transition-all items-center relative"
 			classList={{
 				"bg-slate-300 dark:bg-slate-900 dark:text-slate-300": props.isSelected,
 				"bg-slate-100 dark:bg-slate-700 dark:text-slate-400": !props.isSelected,
@@ -99,9 +99,8 @@ export const BrowserTab: Component<BrowserTabAttrs> = (
 						</div>
 					)}
 				</div>
-				{/* {props.vimMark && <div class="text-xl font-bold bg-blue-700 text-indigo-300 rounded-md px-2">{props.vimMark}</div>} */}
 				<div class="flex px-1">
-					<div class="flex-initial w-5 text-right text-lg pl-1 overflow-visible">
+					<div class="flex-initial w-5 text-right text-lg pl-1">
 						{props.idx}
 					</div>
 				</div>

@@ -16,7 +16,7 @@ export const withMarks = (): [InitializedResource<Marks>, Setter<Marks>] => {
 	const fetcher = async (): Promise<Marks> => {
 		const v = await browserApi.localStore.get<Marks>(key);
 		if (v == null) {
-			return DEFAULT_EMPTY_MARKS;
+			return {} satisfies Marks;
 		}
 
 		return v;

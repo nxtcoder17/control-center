@@ -53,7 +53,7 @@ interface TabStore {
 	matchedTabs: () => MatchedTabs;
 
 	// Actions
-	setQuery: (q: string) => void;
+	setQuery: (q: string, mode?: Mode) => void;
 	setMode: (mode: Mode) => void;
 	setActiveSelection: (selection: number) => void;
 	setMarks: (
@@ -208,7 +208,8 @@ export const TabStoreProvider: ParentComponent = (props) => {
 
 	// Build actions
 	const actions = {
-		setQuery: (q: string) => setStore("query", store.mode, q),
+		setQuery: (q: string, mode?: Mode) =>
+			setStore("query", mode ?? store.mode, q),
 		setMode: (mode: Mode) => setStore("mode", mode),
 		setActiveSelection: (selection: number) =>
 			setStore("activeSelection", selection),
@@ -230,15 +231,16 @@ export const TabStoreProvider: ParentComponent = (props) => {
 	// Consolidated effect for all mode-related and query-related behaviors
 	createEffect(() => {
 		const q = store.query[store.mode];
+		logger.debug("effect", "q", q, "mode", store.mode);
 
 		switch (store.mode) {
 			case Mode.Search: {
 				// Handle mode switching from Search to Marks
 				if (q.startsWith("`")) {
 					batch(() => {
+						actions.setQuery(q, Mode.Marks);
+						actions.setQuery("", Mode.Search);
 						actions.setMode(Mode.Marks);
-						actions.setQuery(q);
-						actions.setMode(Mode.Search);
 					});
 				}
 				break;
@@ -373,8 +375,6 @@ export const TabStoreProvider: ParentComponent = (props) => {
 			if (store.mode !== Mode.Action) {
 				return;
 			}
-
-			event.preventDefault();
 
 			if (event.code === "Space" || event.code === "ShiftLeft") {
 				(async () => {
