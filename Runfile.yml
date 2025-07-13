@@ -9,8 +9,9 @@ tasks:
     env:
       VITE_BUILD_FOR_FIREFOX: "true"
     cmd:
+      - rm -rf "$VITE_BUILD_DIR_FIREFOX"
       - pnpm build
-      - cp manifest.firefox.json $VITE_BUILD_DIR_FIREFOX/manifest.json
+      - cp src/manifest/firefox/manifest.json $VITE_BUILD_DIR_FIREFOX/manifest.json
       - cp -r icons $VITE_BUILD_DIR_FIREFOX
 
   firefox:dev:
@@ -18,6 +19,7 @@ tasks:
       VITE_RUN_MODE: dev
       VITE_BUILD_FOR_FIREFOX: true
     watch:
+      debug: true
       ignoreDirs:
         - .dist
       extensions:
@@ -31,14 +33,26 @@ tasks:
   chrome:dev:
     env:
       VITE_RUN_MODE: dev
+      VITE_BUILD_FOR_CHROME: "true"
+    watch:
+      ignoreDirs:
+        - .dist
+      extensions:
+        - .js
+        - .ts
+        - .tsx
     cmd:
-      - fwatcher -x .dist -i .mjs -i .yml sh -c 'rm -rf vite.config.ts.timestamp* && pnpm build'
+      - rm -rf vite.config.ts.timestamp*
+      - run: chrome:build
 
   chrome:build:
     env:
       VITE_BUILD_FOR_CHROME: "true"
     cmd:
-      - npm run build
+      - rm -rf "$VITE_BUILD_DIR_CHROME"
+      - pnpm build
+      - cp src/manifest/chrome/manifest.json $VITE_BUILD_DIR_CHROME/manifest.json
+      - cp -r icons $VITE_BUILD_DIR_CHROME
 
   firefox:build:zip:
     cmd:
