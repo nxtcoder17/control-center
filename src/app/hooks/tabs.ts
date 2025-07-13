@@ -1,6 +1,6 @@
 import { browserApi } from "../../pkg/browser-api";
 import * as browser from "webextension-polyfill";
-import { createResource, Setter, type Accessor } from "solid-js";
+import { createResource, type Setter, type Accessor } from "solid-js";
 import * as perf from "../../pkg/perf";
 
 function isExtensionTab(tab: browser.Tabs.Tab): boolean {
@@ -30,13 +30,13 @@ const fetchListOfTabs = async (): Promise<Tabs> => {
 
 	logger.debug("tabs/all", "list", t);
 
-	const t2 = t
+	return t
 		.filter(
 			(item) => item.url !== browser.runtime.getURL("src/background.html"),
 		)
 		.reduce((acc, curr: Tab) => {
 			if (isExtensionTab(curr)) {
-				logger.info("skipping background page", { url: curr.url });
+				logger.debug("skipping background page", { url: curr.url });
 				return acc;
 			}
 			tabIdx += 1;
@@ -51,8 +51,6 @@ const fetchListOfTabs = async (): Promise<Tabs> => {
 	// 	"contextual-identities",
 	// 	await browserApi.listContextualIdentities(),
 	// );
-
-	return t2;
 };
 
 export const withTabs = (): [Accessor<Tabs>, Setter<Tabs>] => {

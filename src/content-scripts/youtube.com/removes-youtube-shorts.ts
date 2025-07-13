@@ -25,10 +25,12 @@ async function main() {
 	const ytShortsSelectors = [
 		"ytd-rich-section-renderer div#content", //[refer here](https://github.com/user-attachments/assets/1325c389-9dec-474e-a13c-45161f1ef8a1)
 		"ytd-reel-shelf-renderer",
+		".shortsLockupViewModelHost",
+		// "div.ytd-item-section-renderer",
 		...(optCustomYTShortsSelectors || []),
 	];
 
-	function removeFromDOM(selector) {
+	const removeFromDOM = (selector) => {
 		// FIXME: we are selecting all the elements again, and again, even though we have filtered it
 		console.log("will find youtube shorts", "for.selector", selector);
 		const items = document.querySelectorAll(selector);
@@ -48,7 +50,7 @@ async function main() {
 				}
 			}
 		}
-	}
+	};
 
 	if (optRemoveYTShorts) {
 		logger.info(

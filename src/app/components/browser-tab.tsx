@@ -38,7 +38,7 @@ const HLTextRenderer = (props: { texts: HLText[] }) => {
 					<span
 						data-hl={t.hl}
 						classList={{
-							"text-orange-500 scale-[150%] dark:text-sky-500 scale-120 tracking-wide":
+							"text-fuchsia-700 scale-[150%] dark:text-sky-500 scale-120 tracking-wide":
 								t.hl,
 						}}
 					>
@@ -64,22 +64,16 @@ export const BrowserTab: Component<BrowserTabAttrs> = (
 		}
 	});
 
-	createEffect(() => {
-		if (props.vimMark) {
-			logger.info("vim-mark", {
-				vimMark: props.vimMark,
-				tabTitle: props.tabInfo.title,
-				tabId: props.tabInfo.id,
-			});
-		}
-	});
-
 	return (
 		<div
-			class="flex-1 flex flex-row gap-3 tracking-wide text-gray-700 px-2 py-1 cursor-pointer transition-all items-center relative"
+			class="flex-1 flex flex-row gap-3 tracking-wide px-2 py-1 cursor-pointer transition-all items-center relative"
 			classList={{
-				"bg-slate-300 dark:bg-slate-900 dark:text-slate-300": props.isSelected,
-				"bg-slate-100 dark:bg-slate-700 dark:text-slate-400": !props.isSelected,
+				"text-slate-600  dark:text-slate-300":
+					props.matches == null || props.matches?.title.length === 0,
+				"text-slate-500 dark:text-slate-400":
+					props.matches != null && props.matches.title.length > 0,
+				"bg-slate-200 dark:bg-slate-900": props.isSelected,
+				"bg-slate-50 dark:bg-slate-700": !props.isSelected,
 			}}
 			ref={ref}
 			onClick={() => {
@@ -125,8 +119,10 @@ export const BrowserTab: Component<BrowserTabAttrs> = (
 			<div
 				class="flex-initial text-sm w-1/3 truncate"
 				classList={{
-					"dark:text-slate-400 text-slate-600": props.isSelected,
-					"dark:text-slate-500 text-slate-400": !props.isSelected,
+					"text-slate-500":
+						props.matches == null || props.matches.url.length === 0,
+					"text-slate-400":
+						props.matches != null && props.matches.url.length > 0,
 				}}
 			>
 				{props?.matches?.url && props?.matches?.url.length > 0 ? (

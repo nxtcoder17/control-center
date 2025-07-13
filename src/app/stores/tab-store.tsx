@@ -75,46 +75,21 @@ function defaultEmptyMatchedTabs(): MatchedTabs {
 }
 
 function buildHighlightedText(item: FuseResultMatch): HLText[] {
-	const result: HLText[] = [];
-	let lastIdx = 0;
+	if (item.value == null || item.indices.length === 0) {
+		return [] as HLText[];
+	}
 
-  const ranges: string[] = [];
+	const result: HLText[] = item.value
+		.split("")
+		.map((ch) => ({ text: ch, hl: false }));
 
-  const indexes = Array.from(item.indices).sort((a, b) => a[0] - b[0])
+	const indexes = Array.from(item.indices).sort((a, b) => a[0] - b[0]);
 
 	for (const idx of indexes) {
-		if (idx[0] > lastIdx) {
-		  ranges.push(`${lastIdx} - ${idx[0]}`)
-		  lastIdx = idx[0]
-			result.push({
-				text: item.value?.slice(lastIdx, idx[0]),
-				hl: false,
-			});
+		for (let i = idx[0]; i <= idx[1]; i++) {
+			result[i].hl = true;
 		}
-
-		if (idx[0] >= lastIdx) {
-		  ranges.push(`${idx[0]} - ${idx[1]+1}`)
-		  result.push({
-			  text: item.value?.slice(idx[0], idx[1] + 1),
-			  hl: true,
-		  });
-		  lastIdx = idx[1] + 1;
-		}
-
-		// ranges.push(`${idx[0]} - ${idx[1]+1}`)
-		// result.push({
-		// 	text: item.value?.slice(idx[0], idx[1] + 1),
-		// 	hl: true,
-		// });
-		// lastIdx = idx[1] + 1;
 	}
-
-	if (item.value && lastIdx < item.value.length) {
-		ranges.push(`${lastIdx} - ${item.value.length}`)
-		result.push({ text: item.value.slice(lastIdx), hl: false });
-	}
-
-  console.log("item.value", item.value, "result", result, "ranges", ranges)
 
 	return result;
 }
@@ -168,6 +143,13 @@ function computeMatchedTabs(
 	logger.debug("tabs/matched", "list", m);
 
 	return m.reduce((acc, curr) => {
+		if (!curr.item.id) {
+			return acc;
+		}
+
+		acc.list.push(curr.item.id);
+		acc.data[curr.item.id] = tabs().data[curr.item.id];
+
 		const title = curr.matches
 			?.filter((item) => item.key === "title")
 			.flatMap((item) => {
@@ -180,14 +162,10 @@ function computeMatchedTabs(
 				return buildHighlightedText(item);
 			});
 
-		if (curr.item.id) {
-			acc.list.push(Number(curr.item.id));
-			acc.data[Number(curr.item.id)] = tabs().data[curr.item.id];
-			acc.matches[Number(curr.item.id)] = {
-				title: title || ([] as HLText[]),
-				url: url || ([] as HLText[]),
-			};
-		}
+		acc.matches[curr.item.id] = {
+			title: title || ([] as HLText[]),
+			url: url || ([] as HLText[]),
+		};
 		return acc;
 	}, defaultEmptyMatchedTabs());
 }
@@ -298,10 +276,10 @@ export const TabStoreProvider: ParentComponent = (props) => {
 					case "m": // Create mark
 						batch(() => {
 							setMark(mark, matchedTabs().data[tabId].url || "");
-							setTabs(t => {
-							  t.data[tabId].mark = mark
-							  return t
-							})
+							setTabs((t) => {
+								t.data[tabId].mark = mark;
+								return t;
+							});
 							actions.setQuery("");
 							actions.setQuery("", Mode.Search);
 							actions.setMode(Mode.Search);
@@ -311,10 +289,10 @@ export const TabStoreProvider: ParentComponent = (props) => {
 					case "d": // Delete mark
 						batch(() => {
 							delMark(mark);
-							setTabs(t => {
-							  delete t.data[markToTab()[mark]]?.mark
-							  return t
-							})
+							setTabs((t) => {
+								delete t.data[markToTab()[mark]]?.mark;
+								return t;
+							});
 
 							actions.setQuery("");
 							actions.setQuery("", Mode.Search);
@@ -408,6 +386,8 @@ export const TabStoreProvider: ParentComponent = (props) => {
 			}
 
 			if (event.code === "Space" || event.code === "ShiftLeft") {
+				event.preventDefault();
+
 				(async () => {
 					const songInfo = await musicControls.playOrPauseSong(
 						matchedTabs().list[store.activeSelection],
@@ -417,6 +397,8 @@ export const TabStoreProvider: ParentComponent = (props) => {
 			}
 
 			if (event.code === "ArrowRight") {
+				event.preventDefault();
+
 				(async () => {
 					const songInfo = await musicControls.nextSong(
 						matchedTabs().list[store.activeSelection],
@@ -426,6 +408,8 @@ export const TabStoreProvider: ParentComponent = (props) => {
 			}
 
 			if (event.code === "ArrowLeft") {
+				event.preventDefault();
+
 				(async () => {
 					const songInfo = await musicControls.prevSong(
 						matchedTabs().list[store.activeSelection],
@@ -439,6 +423,7 @@ export const TabStoreProvider: ParentComponent = (props) => {
 			// Mode switching
 			if (event.key === "Escape") {
 				event.preventDefault();
+				actions.setQuery("");
 				actions.setMode(Mode.Search);
 				return;
 			}
