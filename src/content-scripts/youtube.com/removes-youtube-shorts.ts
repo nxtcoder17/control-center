@@ -1,33 +1,19 @@
 import { newLogger } from "../../pkg/logger";
 import { browserApi } from "../../pkg/browser-api";
 import { observeAndAct } from "../../pkg/dom/observe-and-act";
-import {
-	OPT_YT_SHORTS_CSS_SELECTORS,
-	OPT_YT_SHORTS_REMOVE,
-} from "../../constants/store-keys";
+import { readOptions } from "../../option/options";
 
 const logger = newLogger("removes-youtube-shorts");
 
 async function main() {
-	const [optRemoveYTShorts, optCustomYTShortsSelectors] = await Promise.all([
-		browserApi.localStore.get(OPT_YT_SHORTS_REMOVE),
-		browserApi.localStore.get(OPT_YT_SHORTS_CSS_SELECTORS),
-	]);
-
-	logger.debug(
-		"store",
-		"scripts.youtube-shorts.remove",
-		optRemoveYTShorts,
-		"scripts.youtube-shorts.css-selectors",
-		optCustomYTShortsSelectors,
-	);
+	const opt = await readOptions();
+	logger.debug("options", "youtube", opt.youtube);
 
 	const ytShortsSelectors = [
 		"ytd-rich-section-renderer div#content", //[refer here](https://github.com/user-attachments/assets/1325c389-9dec-474e-a13c-45161f1ef8a1)
 		"ytd-reel-shelf-renderer",
 		".shortsLockupViewModelHost",
-		// "div.ytd-item-section-renderer",
-		...(optCustomYTShortsSelectors || []),
+		...opt.youtube.shortsSelectors,
 	];
 
 	const removeFromDOM = (selector) => {
@@ -52,7 +38,7 @@ async function main() {
 		}
 	};
 
-	if (optRemoveYTShorts) {
+	if (opt.youtube) {
 		logger.info(
 			`should remove youtube shorts with selectors: ${ytShortsSelectors}`,
 		);

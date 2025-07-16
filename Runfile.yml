@@ -30,6 +30,14 @@ tasks:
       - rm -rf vite.config.ts.timestamp*
       - run: firefox:build
 
+  firefox:build:zip:
+    cmd:
+      - run: firefox:build
+      - |+
+        pushd .dist/firefox
+        zip -r ../../control-center.zip *
+        popd
+
   chrome:dev:
     env:
       VITE_RUN_MODE: dev
@@ -54,11 +62,11 @@ tasks:
       - cp src/manifest/chrome/manifest.json $VITE_BUILD_DIR_CHROME/manifest.json
       - cp -r icons $VITE_BUILD_DIR_CHROME
 
-  firefox:build:zip:
+  chrome:build:zip:
     cmd:
-      - run: firefox:build
+      - run: chrome:build
       - |+
-        pushd .dist/firefox
+        pushd .dist/chrome
         zip -r ../../control-center.zip *
         popd
 

@@ -10,6 +10,7 @@ interface BrowserApi {
 	localStore: {
 		set: <T>(key: string, value: T) => Promise<void>;
 		get: <T>(key: string) => Promise<T> | Promise<unknown>;
+		getOrDefault: <T>(key: string, defaultVal?: T) => Promise<T>;
 	};
 	listContextualIdentities: () => Promise<
 		browser.ContextualIdentities.ContextualIdentity[]
@@ -86,6 +87,15 @@ browserApi.localStore = {
 	get: async (key) => {
 		const item = await browser.storage.local.get(key);
 		return item[key];
+	},
+
+	getOrDefault: async (key, defaultVal) => {
+		const item = await browser.storage.local.get(key);
+		console.log("api.get", "item", item);
+		if (item[key]) {
+			return item[key];
+		}
+		return defaultVal;
 	},
 };
 

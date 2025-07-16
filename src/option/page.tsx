@@ -1,47 +1,31 @@
-// import { Select } from 'solid-blocks';
-import { createEffect, createResource, createSignal } from "solid-js";
+import { createEffect, createResource } from "solid-js";
 import { browserApi } from "../pkg/browser-api";
 import { produce } from "solid-js/store";
-import { OPT_YT_SHORTS_REMOVE } from "../constants/store-keys";
-// import { NxtSelect } from '../components/select';
-
-const THEME_LIGHT: string = "light";
-const THEME_DARK: string = "dark";
-
-export interface Options {
-	theme: string;
-	ytShortsSelectors: string;
-	blockYoutubeThumbnails: boolean;
-}
-
-const defaultOpts: Options = {
-	theme: THEME_LIGHT,
-	ytShortsSelectors: ["ytd-reel-shelf-renderer", "ytd-shorts"].join("\n"),
-	blockYoutubeThumbnails: false,
-};
+import {
+	defaultOptions,
+	readOptions,
+	saveOptions,
+	THEME_DARK,
+	THEME_LIGHT,
+	type Options,
+} from "./options";
 
 export const OptionsPage = () => {
-	const [options, setOptions] = createSignal<Options>(defaultOpts);
-	// const [theme, setTheme] = createSignal(THEME_LIGHT)
-	// const [keyboardShortcut, setKeyboardShortcut] = createSignal('Ctrl+E')
-	// const [blockYoutubeShorts, setBlockYoutubeShorts] = createSignal(false)
-
-	// eslint-disable-next-line solid/reactivity
-	const [savedOptions] = createResource<null | Options>(async () => {
-		const opt = await browserApi.localStore.get<Options>("options");
-		logger.info("extension options", { opt });
-		return opt;
-	});
+	const [options, { mutate: setOptions }] = createResource<Options>(
+		readOptions,
+		{
+			initialValue: defaultOptions(),
+			name: "fetching options from storage.local",
+		},
+	);
 
 	createEffect(() => {
-		const opt = savedOptions();
+		const opt = options();
 		if (!opt) {
 			return;
 		}
-		setOptions(opt);
+		saveOptions(opt);
 	});
-
-	const [removeYTShorts, setRemoveYTShorts] = createSignal(true);
 
 	return (
 		<form
@@ -78,40 +62,25 @@ export const OptionsPage = () => {
 				</select>
 			</div>
 
-			<div class="flex gap-2 items-center">
-				<label for="extension-shortcut" class="w-80">
-					Toggle Extension Shortcut
-				</label>
-				<input
-					disabled
-					id="extension-shortcut"
-					type="text"
-					class="bg-gray-200 rounded-md checked:bg-green-500 border-none"
-					placeholder="Ctrl+Shift+E"
-					// value={keyboardShortcut().trim()}
-					// onInput={e => setKeyboardShortcut(e.target.value)}
-				/>
-			</div>
-
 			<label for="block-youtube-shorts" class="w-80">
-				Block Youtube Shorts
+				Youtube (Remove Shorts)
 			</label>
 
 			<select
 				id="theme-picker"
 				class="bg-gray-200 rounded-md checked:bg-green-500 border-none relative p-2"
 				onChange={(e) => {
-					setRemoveYTShorts(e.target.value === "true");
-					browserApi.localStore.set(
-						OPT_YT_SHORTS_REMOVE,
-						e.target.value === "true",
+					setOptions(
+						produce((opt) => {
+							opt.youtube.removeShorts = e.target.value === "true";
+						}),
 					);
 				}}
 			>
-				<option value={"true"} selected={removeYTShorts()}>
+				<option value={"true"} selected={options().youtube.removeShorts}>
 					Yes
 				</option>
-				<option value="false" selected={!removeYTShorts()}>
+				<option value="false" selected={!options().youtube.removeShorts}>
 					No
 				</option>
 			</select>
@@ -124,35 +93,15 @@ export const OptionsPage = () => {
 				class="bg-gray-200 rounded-md checked:bg-green-500 border-none"
 				rows={5}
 				placeholder="enter selectors one in each line"
-				value={options().ytShortsSelectors}
+				value={options().youtube.shortsSelectors}
 				onInput={(e) => {
 					setOptions(
 						produce((opt) => {
-							opt.ytShortsSelectors = e.target.value;
+							opt.youtube.shortsSelectors = e.target.value.split("\n");
 						}),
-					);
-					setRemoveYTShorts(e.target.value === "true");
-					browserApi.localStore.set(
-						OPT_YT_SHORTS_REMOVE,
-						e.target.value === "true",
 					);
 				}}
 			/>
-
-			<div class="flex gap-6">
-				<button
-					type="submit"
-					class="bg-blue-500 hover:bg-blue-700 text-blue-100 font-bold py-1 px-3 rounded-md"
-				>
-					Save
-				</button>
-				<button
-					type="reset"
-					class="border border-slate-500 hover:bg-slate-600 text-slate-400 font-bold py-1 px-3 rounded-md"
-				>
-					Cancel
-				</button>
-			</div>
 		</form>
 	);
 };

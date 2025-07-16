@@ -42,7 +42,6 @@ const Page = () => {
 								ref={inputRef}
 								value={tabs.query[tabs.mode]}
 								setValue={(v) => {
-									console.log("HERE", v);
 									tabs.setQuery(v);
 								}}
 								placeholder={placeholderForMode(tabs.mode)}
