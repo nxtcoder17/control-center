@@ -6,7 +6,7 @@
 	"type": "module",
 	"scripts": {
 		"dev": "vite build --minify false --mode dev",
-		"build": "vite build",
+		"build": "node ./vite.build.js",
 		"web-ext": "cd dist && web-ext run --start-url \"about:debugging#/runtime/this-firefox\"",
 		"fuzzy": "node --loader ts-node/esm ./src/pkg/fuzzy/fuzzy-finder.ts"
 	},
